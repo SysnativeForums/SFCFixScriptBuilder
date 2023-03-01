@@ -3,6 +3,7 @@ using SFCFixScriptBuilder.Constants;
 using SFCFixScriptBuilder.RegistryHiveLoader;
 using System.Text;
 using System.Text.RegularExpressions;
+using static System.Environment;
 
 namespace SFCFixScriptBuilder.RegistryScriptBuilder
 {
@@ -10,6 +11,7 @@ namespace SFCFixScriptBuilder.RegistryScriptBuilder
     {
         private RegistryKey HKLM = HiveLoader.HKLM;
         private const string COMPONENTS = "SOURCE";
+        private string Desktop = $@"{GetEnvironmentVariable("userprofile")}\Desktop";
         string SourcePath { get; set; }
 
         public RegistryScriptBuilder(string sourcePath) 
@@ -101,7 +103,7 @@ namespace SFCFixScriptBuilder.RegistryScriptBuilder
             }
 
             string lines = builder.ToString();
-            await File.WriteAllTextAsync(@"C:\Users\bsodt\Desktop\SFCFixScript.txt", lines);
+            await File.WriteAllTextAsync(@$"{Desktop}\SFCFixScript.txt", lines);
         }
     }
 
