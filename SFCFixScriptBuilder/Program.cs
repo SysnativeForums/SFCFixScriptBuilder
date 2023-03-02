@@ -16,7 +16,7 @@ string[] arguments = Environment.GetCommandLineArgs();
 string hive = string.Empty;
 string log = string.Empty;
 
-if (arguments.Length <= 1)
+if (arguments.Length < 5)
 {
     Console.WriteLine("Please provide the path of the COMPONENTS hive and the log file");
     Console.WriteLine("Please press any key to exit...");

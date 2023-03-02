@@ -30,9 +30,6 @@ namespace SFCFixScriptBuilder.RegistryHiveLoader
                 return -1;
             }
 
-            //Trim quotes ("") from the path in case the user has used Copy Path
-            path = path.Trim('"');
-
             int result = RegLoadKey(HKLM.Handle.DangerousGetHandle(), name, path);
 
             return result;
