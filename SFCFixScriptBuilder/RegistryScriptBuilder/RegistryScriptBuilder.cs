@@ -100,10 +100,16 @@ namespace SFCFixScriptBuilder.RegistryScriptBuilder
                 }
 
                 builder.AppendLine($"\"{f_mark}\"=dword:{dword_data}");
+                
+                component.Close();
             }
 
             string lines = builder.ToString();
             await File.WriteAllTextAsync(@$"{Desktop}\SFCFixScript.txt", lines);
+            
+            //Close any handles to keys otherwise the hive will be unable to be unloaded
+            components.Close();
+            HKLM.Close();
         }
     }
 

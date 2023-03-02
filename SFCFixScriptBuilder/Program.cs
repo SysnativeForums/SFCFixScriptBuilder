@@ -50,10 +50,13 @@ menu.AppendLine("1. Build Missing S256H Marks (Unavailable)");
 menu.AppendLine("2. Build Missing f! Marks");
 Console.WriteLine(menu.ToString());
 
-Console.WriteLine("Please enter the operation you wish to run: ");
+Console.Write("Please enter the operation you wish to run: ");
 string option = Console.ReadLine();
 
+HiveLoader.GrantPrivileges();
 HiveLoader.LoadHive(hive, "SOURCE");
+HiveLoader.RevokePrivileges();
+
 RegistryScriptBuilder builder = new RegistryScriptBuilder(log);
 
 switch (option)
@@ -68,5 +71,11 @@ switch (option)
     default:
         break;
 }
+
+Console.WriteLine("The log file has been succesfully written");
+
+HiveLoader.GrantPrivileges();
+HiveLoader.UnloadHive("SOURCE");
+HiveLoader.RevokePrivileges();
 
 Console.ReadKey();
