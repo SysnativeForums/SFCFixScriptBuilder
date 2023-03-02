@@ -19,11 +19,11 @@ namespace SFCFixScriptBuilder.RegistryScriptBuilder
             SourcePath = sourcePath;
         }
 
-        public async Task BuildAsync()
+        public async Task BuildMissingS256HMarksScriptAsync()
         {
             string prefix = Prefixes.ComponentsPrefix;
 
-            RegistryKey component_families = HKLM.OpenSubKey(@$"SOURCE\DerivedData\Components");
+            RegistryKey component_families = HKLM.OpenSubKey(@$"{COMPONENTS}\DerivedData\Components");
             StringBuilder builder = new StringBuilder();
 
             builder.AppendLine("::\n");
@@ -54,13 +54,18 @@ namespace SFCFixScriptBuilder.RegistryScriptBuilder
                 byte[] value = component.GetValue(s256h) as byte[];
 
                 builder.AppendLine($"\"{s256h}\"=hex:{BitConverter.ToString(value)?.Replace("-", ",").ToLower()}");
+
+                component.Close();
             }
 
             string lines = builder.ToString();
-            await File.WriteAllTextAsync(@"C:\Users\bsodt\Desktop\SFCFixScript2.txt", lines);
+            await File.WriteAllTextAsync(@$"{Desktop}\SFCFixScript.txt", lines);
+
+            component_families.Close();
+            HKLM.Close();
         }
 
-        public async Task BuildMissingFMarksScript()
+        public async Task BuildMissingFMarksScriptAsync()
         {
             RegistryKey components = HKLM.OpenSubKey(@$"{COMPONENTS}\DerivedData\Components");
             StringBuilder builder = new StringBuilder("::\n");

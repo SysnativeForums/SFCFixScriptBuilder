@@ -46,7 +46,7 @@ if (string.IsNullOrWhiteSpace(log) || string.IsNullOrWhiteSpace(hive)) Console.W
 
 StringBuilder menu = new StringBuilder();
 menu.AppendLine("Available Options: \n");
-menu.AppendLine("1. Build Missing S256H Marks (Unavailable)");
+menu.AppendLine("1. Build Missing S256H Marks");
 menu.AppendLine("2. Build Missing f! Marks");
 Console.WriteLine(menu.ToString());
 
@@ -63,10 +63,11 @@ switch (option)
 {
     case "1":
         //Run S256H builder
+        await builder.BuildMissingS256HMarksScriptAsync();
         break;
     case "2":
         //Run f! builder
-        await builder.BuildMissingFMarksScript();
+        await builder.BuildMissingFMarksScriptAsync();
         break;
     default:
         break;
