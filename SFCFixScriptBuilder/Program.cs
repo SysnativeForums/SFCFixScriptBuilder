@@ -63,6 +63,8 @@ switch (option)
 {
     case "1":
         //Run S256H builder
+        Console.Write("Please enter the versioned index: ");
+        builder.Version = Console.ReadLine();
         await builder.BuildMissingS256HMarksScriptAsync();
         break;
     case "2":
