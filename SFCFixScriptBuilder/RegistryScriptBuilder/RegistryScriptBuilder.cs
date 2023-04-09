@@ -22,8 +22,10 @@ namespace SFCFixScriptBuilder.RegistryScriptBuilder
 
         public async Task BuildMissingS256HMarksScriptAsync()
         {
+            string prefix = Prefixes.ComponentFamiliesPrefix.Replace("{Version}", Version);
+
             RegistryKey component_families = HKLM.OpenSubKey(@$"{COMPONENTS}\DerivedData\VersionedIndex\{Version}\ComponentFamilies");
-            await BuildRegistryScriptAsync(component_families, Patterns.S256H_Mark, Prefixes.ComponentFamiliesPrefix);
+            await BuildRegistryScriptAsync(component_families, Patterns.S256H_Mark, prefix);
         }
 
         public async Task BuildMissingFMarksScriptAsync()
