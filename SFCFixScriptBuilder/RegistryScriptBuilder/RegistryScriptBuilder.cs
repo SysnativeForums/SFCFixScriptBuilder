@@ -51,9 +51,8 @@ namespace SFCFixScriptBuilder.RegistryScriptBuilder
                     current_component = component_name;
                 }
 
-                byte[] value = component.GetValue(s256h) as byte[];
-
-                builder.AppendLine($"\"{s256h}\"=hex:{BitConverter.ToString(value)?.Replace("-", ",").ToLower()}");
+                string line = BuildRegistryValue(component, s256h);
+                builder.AppendLine(line);
 
                 component.Close();
             }
@@ -95,16 +94,8 @@ namespace SFCFixScriptBuilder.RegistryScriptBuilder
                     current_component = component_name;
                 }
 
-                object value = component.GetValue(f_mark);
-                string dword_data = Convert.ToString(Convert.ToInt64(value), 16);
-                int padding_length = 8 - dword_data.Length;
-
-                for (int i = 0; i < padding_length; i++)
-                {
-                    dword_data = string.Concat(dword_data.Prepend('0'));
-                }
-
-                builder.AppendLine($"\"{f_mark}\"=dword:{dword_data}");
+                string line = BuildRegistryValue(component, f_mark);
+                builder.AppendLine(line);
                 
                 component.Close();
             }
@@ -115,6 +106,40 @@ namespace SFCFixScriptBuilder.RegistryScriptBuilder
             //Close any handles to keys otherwise the hive will be unable to be unloaded
             components.Close();
             HKLM.Close();
+        }
+
+        private string BuildRegistryValue(RegistryKey key, string value_name)
+        {
+            RegistryValueKind type = key.GetValueKind(value_name);
+            object data = key.GetValue(value_name);
+            string formatted_value = string.Empty;
+            string value_data = string.Empty;
+
+            switch (type)
+            {
+                case RegistryValueKind.DWord:
+                    formatted_value = Convert.ToString(Convert.ToInt64(data), 16);
+                    int padding_length = 8 - formatted_value.Length;
+
+                    for (int i = 0; i < padding_length; i++)
+                    {
+                        formatted_value = string.Concat(formatted_value.Prepend('0'));
+                    }
+
+                    value_data = $"\"{value_name}\"=dword:{formatted_value}";
+                    break;
+                case RegistryValueKind.Binary:
+                    byte[] hex_data = data as byte[];
+                    formatted_value = BitConverter.ToString(hex_data)?.Replace("-", ",").ToLower();
+
+                    value_data = $"\"{value_name}\"=hex:{formatted_value}";
+                    break;
+                default:
+                    value_data = $"\"{value_name}\"={Convert.ToString(Convert.ToInt64(data), 16)}";
+                    break;
+            }
+
+            return value_data;
         }
     }
 
