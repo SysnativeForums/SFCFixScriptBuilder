@@ -1,117 +1,122 @@
-﻿// See https://aka.ms/new-console-template for more information
-using System.Text;
+﻿using System.Text;
 using SFCFixScriptBuilder.RegistryHiveLoader;
 using SFCFixScriptBuilder.RegistryScriptBuilder;
 
-//TODO: Build SFCFix registry scripts from a Process Monitor trace
-
-/* 1. Run Processor Monitor trace and save the filtered trace to identify the missing keys
- * 2. Export the trace as a .csv file and then cleanup by deleting the columns which aren't Path
- * 3. Save the "cleaned" file as .txt
- * 4. Load the source COMPONENTS hive, preferably this would be a database of known good keys & values
- * 5. Specify the fix you wish to carry out and then run, this will build a SFCFixScript which can be run with SFCFix
- */
-
-try
+internal class Program
 {
-    string[] arguments = Environment.GetCommandLineArgs();
-    string hive = string.Empty;
-    string log = string.Empty;
-
-    if (arguments.Length < 5)
+    private static async Task Main(string[] args)
     {
-        Console.ForegroundColor = ConsoleColor.Yellow;
-        Console.WriteLine("Please provide the path of the COMPONENTS hive and the log file");
-        Console.WriteLine("Please press any key to exit...");
-        Console.ReadKey();
-        return;
-    }
-    else
-    {
-        for (int i = 1; i < arguments.Length; i++)
+        try
         {
-            //Argument prefix will always be odd i.e. 1 or 3
-            if (i % 2 != 0)
+            string[] arguments = Environment.GetCommandLineArgs();
+            string hive = string.Empty;
+            string log = string.Empty;
+            string option = string.Empty;
+            string key = string.Empty;
+            string version = string.Empty;
+
+            Console.WriteLine("SFCFixScriptBuilder version 0.0.2 (prerelease)\n");
+
+            if (arguments.Contains("-help"))
             {
-                if (arguments[i].StartsWith("-c"))
-                {
-                    hive = arguments[i + 1];
-                }
-                else
-                {
-                    log = arguments[i + 1];
-                }
+                BuildHelpMenu();
+                return;
             }
+
+            if (arguments.Length < 7)
+            {
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.WriteLine("Invalid number of arguments; you must provide a valid hive path, key name or log file and the selected option");
+                return;
+            }
+            else
+            {
+                hive = arguments[Array.IndexOf(arguments, "-hive") + 1];
+                log = arguments[Array.IndexOf(arguments, "-log") + 1];
+                option = arguments[Array.IndexOf(arguments, "-option") + 1];
+                key = arguments[Array.IndexOf(arguments, "-key") + 1];
+                version = arguments[Array.IndexOf(arguments, "-version") + 1];
+            }
+
+            if ((string.IsNullOrWhiteSpace(log) && string.IsNullOrWhiteSpace(key)) || string.IsNullOrWhiteSpace(hive))
+            {
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.WriteLine("Invalid arguments; please check your argument values");
+                return;
+            }
+
+            HiveLoader.GrantPrivileges();
+            HiveLoader.LoadHive(hive, "SOURCE");
+            HiveLoader.RevokePrivileges();
+
+            RegistryScriptBuilder builder = new RegistryScriptBuilder(log, key);
+
+            switch (option)
+            {
+                case "1":
+                    await builder.BuildMissingComponentValuesAsync();
+                    break;
+                case "2":
+                    await builder.BuildMissingDeploymentValuesAsync();
+                    break;
+                case "3":
+                    builder.Version = version;
+                    await builder.BuildMissingComponentFamilyValuesAsync();
+                    break;
+                case "4":
+                    await builder.BuildMissingComponentValuesAsync(true);
+                    break;
+                case "5":
+                    await builder.BuildMissingDeploymentValuesAsync(true);
+                    break;
+                case "6":
+                    builder.Version = version;
+                    await builder.BuildMissingComponentFamilyValuesAsync(true);
+                    break;
+                default:
+                    break;
+            }
+
+            Console.WriteLine("SFCFixScript.txt has been succesfully written to %userprofile%\\Desktop \n");
+        }
+        catch (Exception e)
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine("Something went wrong! Please see exception details below.");
+            Console.WriteLine(e.Message);
+            Console.ResetColor();
+        }
+        finally
+        {
+            HiveLoader.GrantPrivileges();
+            HiveLoader.UnloadHive("SOURCE");
+            HiveLoader.RevokePrivileges();
         }
     }
 
-    if (string.IsNullOrWhiteSpace(log) || string.IsNullOrWhiteSpace(hive)) Console.WriteLine("Please provide a valid hive and/or log path");
-
-    Console.WriteLine("SFCFixScriptBuilder version 0.0.1 (prerelease)");
-
-    StringBuilder menu = new StringBuilder();
-    menu.AppendLine("Available Options: \n");
-    menu.AppendLine("1. Build Missing Values for Component Key(s)");
-    menu.AppendLine("2. Build Missing Values for Deployment Key(s)");
-    menu.AppendLine("3. Build Missing Values for Component Family Key(s)");
-    menu.AppendLine("4. Build Missing Component Key(s)");
-    menu.AppendLine("5. Build Missing Deployment Key(s)");
-    menu.AppendLine("6. Build Missing Component Family Key(s)");
-    Console.WriteLine(menu.ToString());
-
-    Console.Write("Please enter the number for the operation you wish to run: ");
-    string option = Console.ReadLine();
-
-    HiveLoader.GrantPrivileges();
-    HiveLoader.LoadHive(hive, "SOURCE");
-    HiveLoader.RevokePrivileges();
-
-    RegistryScriptBuilder builder = new RegistryScriptBuilder(log);
-
-    switch (option)
+    private static void BuildHelpMenu()
     {
-        case "1":
-            await builder.BuildMissingComponentValuesAsync();
-            break;
-        case "2":
-            await builder.BuildMissingDeploymentValuesAsync();
-            break;
-        case "3":
-            Console.Write("Please enter the versioned index: ");
-            builder.Version = Console.ReadLine();
-            await builder.BuildMissingComponentFamilyValuesAsync();
-            break;
-        case "4":
-            await builder.BuildMissingComponentValuesAsync(true);
-            break;
-        case "5":
-            await builder.BuildMissingDeploymentValuesAsync(true);
-            break;
-        case "6":
-            Console.Write("Please enter the versioned index: ");
-            builder.Version = Console.ReadLine();
-            await builder.BuildMissingComponentFamilyValuesAsync(true);
-            break;
-        default:
-            break;
+        StringBuilder menu = new StringBuilder();
+
+        menu.AppendLine("SFCFixScriptBuilder Help\n");
+        menu.AppendLine("Repair Key(s)/Value(s): sfcfixscriptbuilder -hive <Path to hive> -log <Path to log> -option <option number>");
+        menu.AppendLine("Repair Key: sfcfixscriptbuilder -hive <Path to hive> -key <Key Path or Key Name> -option <option number>");
+
+        menu.AppendLine("\n");
+
+        menu.AppendLine("-key: The name or path of the key which you wish to repair. This is an optional parameter.\n");
+        menu.AppendLine("-hive: The path to the source hive, this may be a COMPONENTS or CBS hive. This is a mandatory parameter.\n");
+        menu.AppendLine("-log: The path to the .txt file which contains the list of keys or key/values to repair. This is an optional parameter.\n");
+        menu.AppendLine("-version: The VersionedIndex number which the component family belongs to. This is an optional parameter.\n");
+        
+        menu.AppendLine("-option: This is the repair operation you wish to carry out. This is a mandatory parameter.\n");
+        menu.AppendLine("Available Options: \n");
+        menu.AppendLine("1. Build Missing Values for Component Key(s)");
+        menu.AppendLine("2. Build Missing Values for Deployment Key(s)");
+        menu.AppendLine("3. Build Missing Values for Component Family Key(s)");
+        menu.AppendLine("4. Build Missing Component Key(s)");
+        menu.AppendLine("5. Build Missing Deployment Key(s)");
+        menu.AppendLine("6. Build Missing Component Family Key(s)");
+        Console.WriteLine(menu.ToString());
     }
-
-    Console.WriteLine("SFCFixScript.txt has been succesfully written to %userprofile%\\Desktop \n");
 }
-catch (Exception e)
-{
-    Console.ForegroundColor = ConsoleColor.Red;
-    Console.WriteLine("Something went wrong! Please see exception details below.");
-    Console.WriteLine(e.Message);
-    Console.ResetColor();
-}
-finally
-{
-    HiveLoader.GrantPrivileges();
-    HiveLoader.UnloadHive("SOURCE");
-    HiveLoader.RevokePrivileges();
-
-    Console.WriteLine("Please press any key to exit...");
-    Console.ReadKey();
-}
-

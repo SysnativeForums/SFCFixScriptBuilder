@@ -1,8 +1,0 @@
-{
-  "profiles": {
-    "SFCFixScriptBuilder": {
-      "commandName": "Project",
-      "commandLineArgs": "-c \"C:\\Users\\bsodt\\Downloads\\COMPONENTS - Gary R\\COMPONENTS\" -l \"C:\\Users\\bsodt\\Downloads\\Logfile - Spider\\Logfile.CSV\""
-    }
-  }
-}

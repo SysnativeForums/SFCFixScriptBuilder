@@ -12,34 +12,143 @@ namespace SFCFixScriptBuilder.RegistryScriptBuilder
         private const string COMPONENTS = "SOURCE";
         private string Desktop = $@"{GetEnvironmentVariable("userprofile")}\Desktop";
         string SourcePath { get; set; }
+        string KeyName { get; set; }
         public string Version { get; set; }
 
-        public RegistryScriptBuilder(string sourcePath) 
+        public RegistryScriptBuilder(string sourcePath, string key) 
         {
             SourcePath = sourcePath;
+            KeyName = key;
         }
 
         public async Task BuildMissingComponentValuesAsync(bool buildkey = false)
         {
             RegistryKey components = HKLM.OpenSubKey(@$"{COMPONENTS}\DerivedData\Components");
-            await BuildRegistryScriptAsync(components, Prefixes.ComponentsPrefix, buildkey);
+            
+            if (string.IsNullOrWhiteSpace(KeyName))
+            {
+                await BuildRegistryKeysScriptAsync(components, Prefixes.ComponentsPrefix, buildkey);
+            }
+            else
+            {
+                await BuildRegistryKeyScriptAsync(components, Prefixes.ComponentsPrefix, buildkey);
+            }
+
+            CloseKeys(components);
         }
 
         public async Task BuildMissingDeploymentValuesAsync(bool buildkey = false)
         {
             RegistryKey deployments = HKLM.OpenSubKey($@"{COMPONENTS}\CanonicalData\Deployments");
-            await BuildRegistryScriptAsync(deployments, Prefixes.DeploymentsPrefix, buildkey);
+            
+            if (string.IsNullOrWhiteSpace(KeyName))
+            {
+                await BuildRegistryKeysScriptAsync(deployments, Prefixes.DeploymentsPrefix, buildkey);
+            }
+            else
+            {
+                await BuildRegistryKeyScriptAsync(deployments, Prefixes.DeploymentsPrefix, buildkey);
+            }
+
+            CloseKeys(deployments);
         }
 
         public async Task BuildMissingComponentFamilyValuesAsync(bool buildKey = false)
         {
             string prefix = Prefixes.ComponentFamiliesPrefix.Replace("{Version}", Version);
-
             RegistryKey component_families = HKLM.OpenSubKey(@$"{COMPONENTS}\DerivedData\VersionedIndex\{Version}\ComponentFamilies");
-            await BuildRegistryScriptAsync(component_families, prefix, buildKey);
+            
+            if (string.IsNullOrWhiteSpace(KeyName))
+            {
+                await BuildRegistryKeysScriptAsync(component_families, prefix, buildKey);
+            }
+            else
+            {
+                await BuildRegistryKeyScriptAsync(component_families, prefix, buildKey);
+            }
+            
+            CloseKeys(component_families);
         }
 
-        private async Task BuildRegistryScriptAsync(RegistryKey keys, string prefix, bool buildkey = false)
+        private void CloseKeys(RegistryKey keys)
+        {
+            //Close any handles to keys otherwise the hive will be unable to be unloaded
+            keys.Close();
+            HKLM.Close();
+        }
+
+        private async Task WriteSFCFixScriptAsync(StringBuilder builder)
+        {
+            string lines = builder.ToString();
+            string path = @$"{Desktop}\SFCFixScript.txt";
+            string answer = "n";
+
+            if (File.Exists(path)) {
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.WriteLine("Warning: An existing SFCFixScript.txt file was found, do you wish to overwrite it [y/n]: ");
+                answer = Console.ReadLine();
+
+                if (answer.ToLower() == "n")
+                {
+                    await File.WriteAllTextAsync(@$"{Desktop}\SFCFixScript {DateTime.Now}.txt", lines);
+                    return;
+                }
+            }
+
+            await File.WriteAllTextAsync(path, lines);
+        }
+
+        private async Task BuildRegistryKeyScriptAsync(RegistryKey keys, string prefix, bool buildkey = false)
+        {
+            StringBuilder builder = new StringBuilder("::\n");
+            string value_name = string.Empty;
+            string key_name = string.Empty;
+
+            string[] segments = KeyName.Split('\\');
+            int length = segments.Length;
+
+            if (buildkey)
+            {
+                key_name = segments[length - 1];
+            }
+            else
+            {
+                key_name = segments[length - 2];
+                value_name = segments[length - 1];
+            }
+
+            RegistryKey key = keys.OpenSubKey(key_name);
+
+            if (key is null)
+            {
+                Console.WriteLine($"Unable to find key: {key_name}");
+                key.Close();
+                return;
+            }
+
+            builder.AppendLine($"{prefix}{key_name}]");
+
+            if (buildkey)
+            {
+                foreach (string value in key.GetValueNames())
+                {
+                    string line = BuildRegistryValue(key, value);
+                    builder.AppendLine(line);
+                }
+            }
+            else
+            {
+                string line = BuildRegistryValue(key, value_name);
+                builder.AppendLine(line);
+            }
+
+            key.Close();
+
+            await WriteSFCFixScriptAsync(builder);
+
+        }
+
+        private async Task BuildRegistryKeysScriptAsync(RegistryKey keys, string prefix, bool buildkey = false)
         {
             StringBuilder builder = new StringBuilder("::\n");
 
@@ -93,12 +202,7 @@ namespace SFCFixScriptBuilder.RegistryScriptBuilder
                 key.Close();
             }
 
-            string lines = builder.ToString();
-            await File.WriteAllTextAsync(@$"{Desktop}\SFCFixScript.txt", lines);
-
-            //Close any handles to keys otherwise the hive will be unable to be unloaded
-            keys.Close();
-            HKLM.Close();
+            await WriteSFCFixScriptAsync(builder);
         }
 
         private string BuildRegistryValue(RegistryKey key, string value_name)
