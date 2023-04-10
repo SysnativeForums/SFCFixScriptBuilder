@@ -47,6 +47,8 @@ try
 
     if (string.IsNullOrWhiteSpace(log) || string.IsNullOrWhiteSpace(hive)) Console.WriteLine("Please provide a valid hive and/or log path");
 
+    Console.WriteLine("SFCFixScriptBuilder version 0.0.1 (prerelease)");
+
     StringBuilder menu = new StringBuilder();
     menu.AppendLine("Available Options: \n");
     menu.AppendLine("1. Build Missing Values for Component Key(s)");
