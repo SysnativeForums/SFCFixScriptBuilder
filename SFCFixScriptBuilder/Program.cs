@@ -12,73 +12,104 @@ using SFCFixScriptBuilder.RegistryScriptBuilder;
  * 5. Specify the fix you wish to carry out and then run, this will build a SFCFixScript which can be run with SFCFix
  */
 
-string[] arguments = Environment.GetCommandLineArgs();
-string hive = string.Empty;
-string log = string.Empty;
+try
+{
+    string[] arguments = Environment.GetCommandLineArgs();
+    string hive = string.Empty;
+    string log = string.Empty;
 
-if (arguments.Length < 5)
-{
-    Console.WriteLine("Please provide the path of the COMPONENTS hive and the log file");
-    Console.WriteLine("Please press any key to exit...");
-    Console.ReadKey();
-    return;
-}
-else
-{
-    for (int i = 1; i < arguments.Length; i++)
+    if (arguments.Length < 5)
     {
-        //Argument prefix will always be odd i.e. 1 or 3
-        if (i % 2 != 0)
+        Console.ForegroundColor = ConsoleColor.Yellow;
+        Console.WriteLine("Please provide the path of the COMPONENTS hive and the log file");
+        Console.WriteLine("Please press any key to exit...");
+        Console.ReadKey();
+        return;
+    }
+    else
+    {
+        for (int i = 1; i < arguments.Length; i++)
         {
-            if (arguments[i].StartsWith("-c"))
+            //Argument prefix will always be odd i.e. 1 or 3
+            if (i % 2 != 0)
             {
-                hive = arguments[i + 1];
-            }
-            else
-            {
-                log = arguments[i + 1];
+                if (arguments[i].StartsWith("-c"))
+                {
+                    hive = arguments[i + 1];
+                }
+                else
+                {
+                    log = arguments[i + 1];
+                }
             }
         }
     }
+
+    if (string.IsNullOrWhiteSpace(log) || string.IsNullOrWhiteSpace(hive)) Console.WriteLine("Please provide a valid hive and/or log path");
+
+    StringBuilder menu = new StringBuilder();
+    menu.AppendLine("Available Options: \n");
+    menu.AppendLine("1. Build Missing Values for Component Key(s)");
+    menu.AppendLine("2. Build Missing Values for Deployment Key(s)");
+    menu.AppendLine("3. Build Missing Values for Component Family Key(s)");
+    menu.AppendLine("4. Build Missing Component Key(s)");
+    menu.AppendLine("5. Build Missing Deployment Key(s)");
+    menu.AppendLine("6. Build Missing Component Family Key(s)");
+    Console.WriteLine(menu.ToString());
+
+    Console.Write("Please enter the number for the operation you wish to run: ");
+    string option = Console.ReadLine();
+
+    HiveLoader.GrantPrivileges();
+    HiveLoader.LoadHive(hive, "SOURCE");
+    HiveLoader.RevokePrivileges();
+
+    RegistryScriptBuilder builder = new RegistryScriptBuilder(log);
+
+    switch (option)
+    {
+        case "1":
+            await builder.BuildMissingComponentValuesAsync();
+            break;
+        case "2":
+            await builder.BuildMissingDeploymentValuesAsync();
+            break;
+        case "3":
+            Console.Write("Please enter the versioned index: ");
+            builder.Version = Console.ReadLine();
+            await builder.BuildMissingComponentFamilyValuesAsync();
+            break;
+        case "4":
+            await builder.BuildMissingComponentValuesAsync(true);
+            break;
+        case "5":
+            await builder.BuildMissingDeploymentValuesAsync(true);
+            break;
+        case "6":
+            Console.Write("Please enter the versioned index: ");
+            builder.Version = Console.ReadLine();
+            await builder.BuildMissingComponentFamilyValuesAsync(true);
+            break;
+        default:
+            break;
+    }
+
+    Console.WriteLine("SFCFixScript.txt has been succesfully written to %userprofile%\\Desktop \n");
 }
-
-if (string.IsNullOrWhiteSpace(log) || string.IsNullOrWhiteSpace(hive)) Console.WriteLine("Please provide a valid hive and/or log path");
-
-StringBuilder menu = new StringBuilder();
-menu.AppendLine("Available Options: \n");
-menu.AppendLine("1. Build Missing S256H Marks");
-menu.AppendLine("2. Build Missing f! Marks");
-Console.WriteLine(menu.ToString());
-
-Console.Write("Please enter the operation you wish to run: ");
-string option = Console.ReadLine();
-
-HiveLoader.GrantPrivileges();
-HiveLoader.LoadHive(hive, "SOURCE");
-HiveLoader.RevokePrivileges();
-
-RegistryScriptBuilder builder = new RegistryScriptBuilder(log);
-
-switch (option)
+catch (Exception e)
 {
-    case "1":
-        //Run S256H builder
-        Console.Write("Please enter the versioned index: ");
-        builder.Version = Console.ReadLine();
-        await builder.BuildMissingS256HMarksScriptAsync();
-        break;
-    case "2":
-        //Run f! builder
-        await builder.BuildMissingFMarksScriptAsync();
-        break;
-    default:
-        break;
+    Console.ForegroundColor = ConsoleColor.Red;
+    Console.WriteLine("Something went wrong! Please see exception details below.");
+    Console.WriteLine(e.Message);
+    Console.ResetColor();
+}
+finally
+{
+    HiveLoader.GrantPrivileges();
+    HiveLoader.UnloadHive("SOURCE");
+    HiveLoader.RevokePrivileges();
+
+    Console.WriteLine("Please press any key to exit...");
+    Console.ReadKey();
 }
 
-Console.WriteLine("The log file has been succesfully written");
-
-HiveLoader.GrantPrivileges();
-HiveLoader.UnloadHive("SOURCE");
-HiveLoader.RevokePrivileges();
-
-Console.ReadKey();

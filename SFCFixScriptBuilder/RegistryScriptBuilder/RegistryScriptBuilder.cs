@@ -2,7 +2,6 @@
 using SFCFixScriptBuilder.Constants;
 using SFCFixScriptBuilder.RegistryHiveLoader;
 using System.Text;
-using System.Text.RegularExpressions;
 using static System.Environment;
 
 namespace SFCFixScriptBuilder.RegistryScriptBuilder
@@ -20,49 +19,48 @@ namespace SFCFixScriptBuilder.RegistryScriptBuilder
             SourcePath = sourcePath;
         }
 
-        public async Task BuildMissingS256HMarksScriptAsync()
+        public async Task BuildMissingComponentValuesAsync(bool buildkey = false)
+        {
+            RegistryKey components = HKLM.OpenSubKey(@$"{COMPONENTS}\DerivedData\Components");
+            await BuildRegistryScriptAsync(components, Prefixes.ComponentsPrefix, buildkey);
+        }
+
+        public async Task BuildMissingDeploymentValuesAsync(bool buildkey = false)
+        {
+            RegistryKey deployments = HKLM.OpenSubKey($@"{COMPONENTS}\CanonicalData\Deployments");
+            await BuildRegistryScriptAsync(deployments, Prefixes.DeploymentsPrefix, buildkey);
+        }
+
+        public async Task BuildMissingComponentFamilyValuesAsync(bool buildKey = false)
         {
             string prefix = Prefixes.ComponentFamiliesPrefix.Replace("{Version}", Version);
 
             RegistryKey component_families = HKLM.OpenSubKey(@$"{COMPONENTS}\DerivedData\VersionedIndex\{Version}\ComponentFamilies");
-            await BuildRegistryScriptAsync(component_families, Patterns.S256H_Mark, prefix);
+            await BuildRegistryScriptAsync(component_families, prefix, buildKey);
         }
 
-        public async Task BuildMissingFMarksScriptAsync()
-        {
-            RegistryKey components = HKLM.OpenSubKey(@$"{COMPONENTS}\DerivedData\Components");
-            await BuildRegistryScriptAsync(components, Patterns.F_Mark, Prefixes.ComponentsPrefix);
-        }
-
-        public async Task BuildMissingiMarksAsync()
-        {
-            RegistryKey deployments = HKLM.OpenSubKey($@"{COMPONENTS}\CanonicalData\Deployments");
-            await BuildRegistryScriptAsync(deployments, Patterns.I_Mark, Prefixes.DeploymentsPrefix);
-        }
-
-        public async Task BuildMissingIdentitesAsync()
-        {
-            RegistryKey components = HKLM.OpenSubKey(@$"{COMPONENTS}\DerivedData\Components");
-            await BuildRegistryScriptAsync(components, Patterns.Identity, Prefixes.ComponentsPrefix);
-        }
-
-        public async Task BuildMissingComponentFamiliesAsync()
-        {
-
-        }
-
-        private async Task BuildRegistryScriptAsync(RegistryKey keys, string pattern, string prefix)
+        private async Task BuildRegistryScriptAsync(RegistryKey keys, string prefix, bool buildkey = false)
         {
             StringBuilder builder = new StringBuilder("::\n");
 
             string key_name = string.Empty;
+            string value_name = string.Empty;
             string current_key = string.Empty;
 
             foreach (string source_line in await File.ReadAllLinesAsync(SourcePath))
             {
-                //Extract the value name and then remove it
-                string value_name = Regex.Match(source_line, pattern).Value;
-                key_name = Regex.Replace(source_line, pattern, string.Empty).Replace("\\", string.Empty);
+                string[] segments = source_line.Split('\\');
+                int length = segments.Length;
+                
+                if (buildkey)
+                {
+                    key_name = segments[length - 1];
+                }
+                else
+                {
+                    key_name = segments[length - 2];
+                    value_name = segments[length - 1];
+                }
 
                 RegistryKey key = keys.OpenSubKey(key_name);
 
@@ -78,8 +76,19 @@ namespace SFCFixScriptBuilder.RegistryScriptBuilder
                     current_key = key_name;
                 }
 
-                string line = BuildRegistryValue(key, value_name);
-                builder.AppendLine(line);
+                if (buildkey)
+                {
+                    foreach (string value in key.GetValueNames())
+                    {
+                        string line = BuildRegistryValue(key, value);
+                        builder.AppendLine(line);
+                    }
+                }
+                else
+                {
+                    string line = BuildRegistryValue(key, value_name);
+                    builder.AppendLine(line);
+                }
 
                 key.Close();
             }
