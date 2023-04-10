@@ -46,8 +46,8 @@ internal class Program
                     fullkey = true;
                 }
 
-                //Hotfix: Weird bug with -version and -key getting set to SFCFixScriptBuilder.dll path if not set
-                if (key.Contains("SFCFixScriptBuilder.dll") || version.Contains("SFCFixScriptBuilder.dll"))
+                //Hotfix: Weird bug with -version and -key getting set to SFCFixScriptBuilder path if not set
+                if (key.Contains("SFCFixScriptBuilder") || version.Contains("SFCFixScriptBuilder"))
                 {
                     key = string.Empty; 
                     version = string.Empty;
