@@ -10,15 +10,34 @@ namespace SFCFixScriptBuilder.RegistryScriptBuilder
     {
         private RegistryKey HKLM = HiveLoader.HKLM;
         private const string COMPONENTS = "SOURCE";
+        private const string CBS = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing";
         private string Desktop = $@"{GetEnvironmentVariable("userprofile")}\Desktop";
-        string SourcePath { get; set; }
-        string KeyName { get; set; }
-        public string Version { get; set; }
+        
+        private string SourcePath { get; set; }
+        private string KeyName { get; set; }
+        private string Version { get; set; }
 
-        public RegistryScriptBuilder(string sourcePath, string key) 
+        public RegistryScriptBuilder(string sourcePath, string key, string version) 
         {
             SourcePath = sourcePath;
             KeyName = key;
+            Version = version;
+        }
+
+        public async Task BuildMissingCatalogsAsync(bool buildkey = false)
+        {
+            RegistryKey catalogs = HKLM.OpenSubKey(@$"{COMPONENTS}\CanonicalData\Catalogs");
+
+            if (string.IsNullOrWhiteSpace(KeyName))
+            {
+                await BuildRegistryKeysScriptAsync(catalogs, Prefixes.CatalogsPrefix, buildkey);
+            }
+            else
+            {
+                await BuildRegistryKeyScriptAsync(catalogs, Prefixes.CatalogsPrefix, buildkey);
+            }
+
+            CloseKeys(catalogs);
         }
 
         public async Task BuildMissingComponentValuesAsync(bool buildkey = false)
@@ -69,6 +88,72 @@ namespace SFCFixScriptBuilder.RegistryScriptBuilder
             
             CloseKeys(component_families);
         }
+
+        public async Task BuildMissingPackagesAsync(string hive = "", bool buildKey = false)
+        {
+            RegistryKey packages = !string.IsNullOrWhiteSpace(hive) ? HKLM.OpenSubKey($@"{hive}\Packages") : HKLM.OpenSubKey($@"{CBS}\Packages");
+
+            if (string.IsNullOrWhiteSpace(KeyName))
+            {
+                await BuildRegistryKeysScriptAsync(packages, Prefixes.PackagesPrefix, buildKey);
+            }
+            else
+            {
+                await BuildRegistryKeyScriptAsync(packages, Prefixes.PackagesPrefix, buildKey);
+            }
+
+            CloseKeys(packages);
+        }
+
+        public async Task BuildMissingPackageIndexesAsync(string hive = "", bool buildKey = false)
+        {
+            RegistryKey indexes = !string.IsNullOrWhiteSpace(hive) ? HKLM.OpenSubKey($@"{hive}\PackageIndex") : HKLM.OpenSubKey($@"{CBS}\PackageIndex");
+
+            if (string.IsNullOrWhiteSpace(KeyName))
+            {
+                await BuildRegistryKeysScriptAsync(indexes, Prefixes.PackageIndexPrefix, buildKey);
+            }
+            else
+            {
+                await BuildRegistryKeyScriptAsync(indexes, Prefixes.PackageIndexPrefix, buildKey);
+            }
+
+            CloseKeys(indexes);
+        }
+        
+        public async Task BuildMissingPackageDetectAsync(string hive = "", bool buildKey = false)
+        {
+            RegistryKey packageDetect = !string.IsNullOrWhiteSpace(hive) ? HKLM.OpenSubKey($@"{hive}\PackageDetect") : HKLM.OpenSubKey($@"{CBS}\PackageDetect");
+
+            if (string.IsNullOrWhiteSpace(KeyName))
+            {
+                await BuildRegistryKeysScriptAsync(packageDetect, Prefixes.PackageDetectPrefix, buildKey);
+            }
+            else
+            {
+                await BuildRegistryKeyScriptAsync(packageDetect, Prefixes.PackageDetectPrefix, buildKey);
+            }
+
+            CloseKeys(packageDetect);
+        }
+
+        public async Task BuildMissingComponentDetectAsync(string hive = "", bool buildKey = false)
+        {
+            RegistryKey componentDetect = !string.IsNullOrWhiteSpace(hive) ? HKLM.OpenSubKey($@"{hive}\ComponentDetect") : HKLM.OpenSubKey($@"{CBS}\ComponentDetect");
+
+            if (string.IsNullOrWhiteSpace(KeyName))
+            {
+                await BuildRegistryKeysScriptAsync(componentDetect, Prefixes.ComponentDetectPrefix, buildKey);
+            }
+            else
+            {
+                await BuildRegistryKeyScriptAsync(componentDetect, Prefixes.ComponentDetectPrefix, buildKey);
+            }
+
+            CloseKeys(componentDetect);
+        }
+
+        #region Helpers
 
         private void CloseKeys(RegistryKey keys)
         {
@@ -245,6 +330,8 @@ namespace SFCFixScriptBuilder.RegistryScriptBuilder
 
             return value_data;
         }
+
+        #endregion
     }
 
 }
