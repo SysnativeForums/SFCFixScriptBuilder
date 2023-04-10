@@ -82,7 +82,7 @@ internal class Program
         catch (Exception e)
         {
             Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine("Something went wrong! Please see exception details below.");
+            Console.WriteLine("Something went wrong! Please see exception details below.\n");
             Console.WriteLine(e.Message);
             Console.ResetColor();
         }
@@ -91,6 +91,8 @@ internal class Program
             HiveLoader.GrantPrivileges();
             HiveLoader.UnloadHive("SOURCE");
             HiveLoader.RevokePrivileges();
+
+            Console.ReadKey();
         }
     }
 

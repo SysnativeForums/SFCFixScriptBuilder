@@ -84,13 +84,17 @@ namespace SFCFixScriptBuilder.RegistryScriptBuilder
             string answer = "n";
 
             if (File.Exists(path)) {
+
+                int file_count = Directory.EnumerateFiles(Desktop).Where(f => f.Contains("SFCFixScript")).Count();
+
                 Console.ForegroundColor = ConsoleColor.Yellow;
                 Console.WriteLine("Warning: An existing SFCFixScript.txt file was found, do you wish to overwrite it [y/n]: ");
                 answer = Console.ReadLine();
+                Console.ResetColor();
 
                 if (answer.ToLower() == "n")
                 {
-                    await File.WriteAllTextAsync(@$"{Desktop}\SFCFixScript {DateTime.Now}.txt", lines);
+                    await File.WriteAllTextAsync(@$"{Desktop}\SFCFixScript({file_count + 1}).txt", lines);
                     return;
                 }
             }
