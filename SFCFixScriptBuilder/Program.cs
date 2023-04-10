@@ -45,6 +45,13 @@ internal class Program
                 {
                     fullkey = true;
                 }
+
+                //Hotfix: Weird bug with -version and -key getting set to SFCFixScriptBuilder.dll path if not set
+                if (key.Contains("SFCFixScriptBuilder.dll") || version.Contains("SFCFixScriptBuilder.dll"))
+                {
+                    key = string.Empty; 
+                    version = string.Empty;
+                }
             }
 
             if (string.IsNullOrWhiteSpace(log) && string.IsNullOrWhiteSpace(key))
@@ -91,6 +98,7 @@ internal class Program
                     await builder.BuildMissingComponentDetectAsync(cbs, fullkey);
                     break;
                 default:
+                    Console.WriteLine("Please provide a valid option");
                     break;
             }
 
@@ -107,8 +115,6 @@ internal class Program
         {
             UnloadHive("SOURCE");
             UnloadHive("CBS");
-
-            Console.ReadKey();
         }
     }
 
