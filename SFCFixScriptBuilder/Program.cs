@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Runtime.CompilerServices;
+using System.Text;
 using SFCFixScriptBuilder.RegistryHiveLoader;
 using SFCFixScriptBuilder.RegistryScriptBuilder;
 using static System.Environment;
@@ -34,23 +35,16 @@ internal class Program
             }
             else
             {
-                hive = arguments[Array.IndexOf(arguments, "-hive") + 1] ?? @$"{GetEnvironmentVariable("systemroot")}\system32\config\COMPONENTS";
-                log = arguments[Array.IndexOf(arguments, "-log") + 1];
-                option = arguments[Array.IndexOf(arguments, "-option") + 1];
-                key = arguments[Array.IndexOf(arguments, "-key") + 1];
-                version = arguments[Array.IndexOf(arguments, "-version") + 1];
-                cbs = arguments[Array.IndexOf(arguments, "-cbs") + 1];
+                hive = Array.IndexOf(arguments, "-hive") > -1 ? arguments[Array.IndexOf(arguments, "-hive") + 1] : @$"{GetEnvironmentVariable("systemroot")}\system32\config\COMPONENTS";
+                log = Array.IndexOf(arguments, "-log") > -1 ? arguments[Array.IndexOf(arguments, "-log") + 1] : string.Empty;
+                key = Array.IndexOf(arguments, "-key") > -1 ? arguments[Array.IndexOf(arguments, "-key") + 1] : string.Empty;
+                version = Array.IndexOf(arguments, "-version") > -1 ? arguments[Array.IndexOf(arguments, "-version") + 1] : string.Empty;
+                cbs = Array.IndexOf(arguments, "-cbs") > -1 ? arguments[Array.IndexOf(arguments, "-cbs") + 1] : string.Empty;
+                option = Array.IndexOf(arguments, "-option") > -1 ? arguments[Array.IndexOf(arguments, "-option") + 1] : string.Empty;
 
                 if (arguments.Contains("-full") || !string.IsNullOrWhiteSpace(key))
                 {
                     fullkey = true;
-                }
-
-                //Hotfix: Weird bug with -version and -key getting set to SFCFixScriptBuilder path if not set
-                if (key.Contains("SFCFixScriptBuilder") || version.Contains("SFCFixScriptBuilder"))
-                {
-                    key = string.Empty; 
-                    version = string.Empty;
                 }
             }
 
@@ -99,7 +93,7 @@ internal class Program
                     break;
                 default:
                     Console.WriteLine("Please provide a valid option");
-                    break;
+                    return;
             }
 
             Console.WriteLine("SFCFixScript.txt has been succesfully written to %userprofile%\\Desktop \n");
