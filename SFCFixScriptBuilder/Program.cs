@@ -18,7 +18,7 @@ internal class Program
             string cbs = string.Empty;
             bool fullkey = false;
 
-            Console.WriteLine("SFCFixScriptBuilder version 0.0.3 (prerelease)\n");
+            Console.WriteLine("SFCFixScriptBuilder version 0.0.4 (prerelease)\n");
 
             if (arguments.Contains("-help"))
             {
