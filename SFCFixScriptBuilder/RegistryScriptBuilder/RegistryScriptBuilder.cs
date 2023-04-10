@@ -239,7 +239,7 @@ namespace SFCFixScriptBuilder.RegistryScriptBuilder
 
         private async Task BuildRegistryKeysScriptAsync(RegistryKey keys, string prefix, bool buildkey = false)
         {
-            StringBuilder builder = new StringBuilder("::\n");
+            StringBuilder builder = new StringBuilder("::");
 
             string key_name = string.Empty;
             string value_name = string.Empty;
@@ -270,6 +270,7 @@ namespace SFCFixScriptBuilder.RegistryScriptBuilder
 
                 if (key_name != current_key)
                 {
+                    builder.AppendLine("\n");
                     builder.AppendLine($"{prefix}{key_name}]");
                     current_key = key_name;
                 }
