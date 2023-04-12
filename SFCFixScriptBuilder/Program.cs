@@ -21,13 +21,13 @@ internal class Program
 
             Console.WriteLine("SFCFixScriptBuilder version 0.0.4--prerelease\n");
 
-            if (arguments.Contains("-help"))
+            if (arguments.Contains("--help"))
             {
                 BuildHelpMenu();
                 return;
             }
 
-            if (arguments.Length < 5)
+            if (arguments.Length < 4)
             {
                 Console.ForegroundColor = ConsoleColor.Yellow;
                 Console.WriteLine("Invalid number of arguments; you must provide a valid key name or log file along with the selected option");
@@ -35,14 +35,24 @@ internal class Program
             }
             else
             {
+                string[] valid_options = new [] { "--packages", "--components", "--indexes", "--families", "--componentdetect", "--packagedetect", "--catalogs", "--deployments"};
+                string[] selected_options = arguments.Intersect(valid_options).ToArray();
+
+                if (selected_options.Length > 1)
+                {
+                    Console.ForegroundColor = ConsoleColor.Yellow;
+                    Console.WriteLine("Please only select one option");
+                    return;
+                }
+
                 hive = Array.IndexOf(arguments, "-hive") > -1 ? arguments[Array.IndexOf(arguments, "-hive") + 1] : @$"{GetEnvironmentVariable("systemroot")}\system32\config\COMPONENTS";
                 log = Array.IndexOf(arguments, "-log") > -1 ? arguments[Array.IndexOf(arguments, "-log") + 1] : string.Empty;
                 key = Array.IndexOf(arguments, "-key") > -1 ? arguments[Array.IndexOf(arguments, "-key") + 1] : string.Empty;
                 version = Array.IndexOf(arguments, "-version") > -1 ? arguments[Array.IndexOf(arguments, "-version") + 1] : string.Empty;
                 cbs = Array.IndexOf(arguments, "-cbs") > -1 ? arguments[Array.IndexOf(arguments, "-cbs") + 1] : string.Empty;
-                option = Array.IndexOf(arguments, "-option") > -1 ? arguments[Array.IndexOf(arguments, "-option") + 1] : string.Empty;
+                option = selected_options.FirstOrDefault();
 
-                if (arguments.Contains("-full") || !string.IsNullOrWhiteSpace(key))
+                if (arguments.Contains("--full") || !string.IsNullOrWhiteSpace(key))
                 {
                     fullkey = true;
                 }
@@ -59,35 +69,35 @@ internal class Program
 
             switch (option)
             {
-                case "1":
-                    LoadHive(hive, "SOURCE");
-                    await builder.BuildMissingComponentValuesAsync(fullkey);
+                case "--components":
+                    LoadComponentsHive(hive, "SOURCE", ref builder);
+                    await builder.BuildMissingComponentsAsync(fullkey);
                     break;
-                case "2":
-                    LoadHive(hive, "SOURCE");
-                    await builder.BuildMissingDeploymentValuesAsync(fullkey);
+                case "--deployments":
+                    LoadComponentsHive(hive, "SOURCE", ref builder);
+                    await builder.BuildMissingDeploymentsAsync(fullkey);
                     break;
-                case "3":
-                    LoadHive(hive, "SOURCE");
-                    await builder.BuildMissingComponentFamilyValuesAsync(fullkey);
+                case "--families":
+                    LoadComponentsHive(hive, "SOURCE", ref builder);
+                    await builder.BuildMissingComponentFamiliesAsync(fullkey);
                     break;
-                case "4":
-                    LoadHive(hive, "SOURCE");
+                case "--catalogs":
+                    LoadComponentsHive(hive, "SOURCE", ref builder);
                     await builder.BuildMissingCatalogsAsync(fullkey);
                     break;
-                case "5":
+                case "--packages":
                     if (!string.IsNullOrWhiteSpace(cbs)) LoadHive(cbs, "CBS");
                     await builder.BuildMissingPackagesAsync(cbs, fullkey);
                     break;
-                case "6":
+                case "--indexes":
                     if (!string.IsNullOrWhiteSpace(cbs)) LoadHive(cbs, "CBS");
                     await builder.BuildMissingPackageIndexesAsync(cbs, fullkey);
                     break;
-                case "7":
+                case "--packagedetect":
                     if (!string.IsNullOrWhiteSpace(cbs)) LoadHive(cbs, "CBS");
                     await builder.BuildMissingPackageDetectAsync(cbs, fullkey);
                     break;
-                case "8":
+                case "--componentdetect":
                     if (!string.IsNullOrWhiteSpace(cbs)) LoadHive(cbs, "CBS");
                     await builder.BuildMissingComponentDetectAsync(cbs, fullkey);
                     break;
@@ -127,26 +137,41 @@ internal class Program
         menu.AppendLine("-cbs: The path to the CBS hive. This is an optional parameter.\n The CBS subkey of the current system will be used if this parameter is not set.\n");
         menu.AppendLine("-log: The path to the .txt file which contains the list of keys or key/values to repair. This is an optional parameter.\n");
         menu.AppendLine("-version: The VersionedIndex number which the component family belongs to. This is an optional parameter.\n");
-        menu.AppendLine("-full: Determines if you wish to rebuild (the) entire key(s). This is an optional parameter. By default, only the specified values will be rebuilt. If -key is set, then -full is implied to be set as well.\n");
+        menu.AppendLine("--full: Determines if you wish to rebuild (the) entire key(s). This is an optional parameter. By default, only the specified values will be rebuilt. If -key is set, then -full is implied to be set as well.\n");
         
-        menu.AppendLine("-option: This is the repair operation you wish to carry out. This is a mandatory parameter.\n");
-        menu.AppendLine("Available Options: \n");
-        menu.AppendLine("1. Build Missing Component Key(s)");
-        menu.AppendLine("2. Build Missing Deployment Key(s)");
-        menu.AppendLine("3. Build Missing Component Family Key(s)");
-        menu.AppendLine("4. Build Missing Catalog Key(s)");
-        menu.AppendLine("5. Build Missing Package Key(s)");
-        menu.AppendLine("6. Build Missing Package Index Key(s)");
-        menu.AppendLine("7. Build Missing Package Detect Key(s)");
-        menu.AppendLine("8. Build Missing Component Detect Key(s)");
+        menu.AppendLine("Available Build/Repair Options: \n");
+        menu.AppendLine("--components - Build Missing Component Key(s)");
+        menu.AppendLine("--deployments - Build Missing Deployment Key(s)");
+        menu.AppendLine("--families - Build Missing Component Family Key(s)");
+        menu.AppendLine("--catalogs - Build Missing Catalog Key(s)");
+        menu.AppendLine("--packages - Build Missing Package Key(s)");
+        menu.AppendLine("--indexes - Build Missing Package Index Key(s)");
+        menu.AppendLine("--packagedetect - Build Missing Package Detect Key(s)");
+        menu.AppendLine("--componentdetect - Build Missing Component Detect Key(s)");
         Console.WriteLine(menu.ToString());
     }
 
-    private static void LoadHive(string path, string name)
+    private static int LoadHive(string path, string name)
     {
         HiveLoader.GrantPrivileges();
-        HiveLoader.LoadHive(path, name);
+        int result = HiveLoader.LoadHive(path, name);
         HiveLoader.RevokePrivileges();
+
+        return result;
+    }
+
+    private static void LoadComponentsHive(string path, string name, ref RegistryScriptBuilder builder)
+    {
+        //Attempt to load the hive, if COMPONENTS hive has already been loaded then this will return an error
+        int result = LoadHive(path, name);
+
+        if (result != 0) 
+        {
+            //Assume that COMPONENTS hive must have already been loaded
+            return;
+        }
+
+        builder.SetComponentsHiveName(name);
     }
 
     private static void UnloadHive(string name)

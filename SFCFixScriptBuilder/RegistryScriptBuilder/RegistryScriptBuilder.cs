@@ -9,7 +9,7 @@ namespace SFCFixScriptBuilder.RegistryScriptBuilder
     public class RegistryScriptBuilder
     {
         private RegistryKey HKLM = HiveLoader.HKLM;
-        private const string COMPONENTS = "SOURCE";
+        private string COMPONENTS = "COMPONENTS";
         private const string CBS = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing";
         private string Desktop = $@"{GetEnvironmentVariable("userprofile")}\Desktop";
         
@@ -22,6 +22,11 @@ namespace SFCFixScriptBuilder.RegistryScriptBuilder
             SourcePath = sourcePath;
             KeyName = key;
             Version = version;
+        }
+
+        public void SetComponentsHiveName(string name)
+        {
+            COMPONENTS = name;
         }
 
         public async Task BuildMissingCatalogsAsync(bool buildkey = false)
@@ -40,7 +45,7 @@ namespace SFCFixScriptBuilder.RegistryScriptBuilder
             CloseKeys(catalogs);
         }
 
-        public async Task BuildMissingComponentValuesAsync(bool buildkey = false)
+        public async Task BuildMissingComponentsAsync(bool buildkey = false)
         {
             RegistryKey components = HKLM.OpenSubKey(@$"{COMPONENTS}\DerivedData\Components");
             
@@ -56,7 +61,7 @@ namespace SFCFixScriptBuilder.RegistryScriptBuilder
             CloseKeys(components);
         }
 
-        public async Task BuildMissingDeploymentValuesAsync(bool buildkey = false)
+        public async Task BuildMissingDeploymentsAsync(bool buildkey = false)
         {
             RegistryKey deployments = HKLM.OpenSubKey($@"{COMPONENTS}\CanonicalData\Deployments");
             
@@ -72,7 +77,7 @@ namespace SFCFixScriptBuilder.RegistryScriptBuilder
             CloseKeys(deployments);
         }
 
-        public async Task BuildMissingComponentFamilyValuesAsync(bool buildKey = false)
+        public async Task BuildMissingComponentFamiliesAsync(bool buildKey = false)
         {
             string prefix = Prefixes.ComponentFamiliesPrefix.Replace("{Version}", Version);
             RegistryKey component_families = HKLM.OpenSubKey(@$"{COMPONENTS}\DerivedData\VersionedIndex\{Version}\ComponentFamilies");
