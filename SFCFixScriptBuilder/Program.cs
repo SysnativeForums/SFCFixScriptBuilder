@@ -126,8 +126,8 @@ internal class Program
         StringBuilder menu = new StringBuilder();
 
         menu.AppendLine("SFCFixScriptBuilder Help\n");
-        menu.AppendLine("Repair Key(s)/Value(s): SFCFixScriptBuilder -hive <Path to hive> -log <Path to log> -option <option number>");
-        menu.AppendLine("Repair Key: SFCFixScriptBuilder -hive <Path to hive> -key <Key Path or Key Name> -option <option number>");
+        menu.AppendLine("Repair Key(s)/Value(s): SFCFixScriptBuilder -hive <Path to hive> -log <Path to log> <option>");
+        menu.AppendLine("Repair Key: SFCFixScriptBuilder -hive <Path to hive> -key <Key Path or Key Name> <option>");
 
         menu.AppendLine("\n");
 
@@ -136,7 +136,7 @@ internal class Program
         menu.AppendLine("-cbs: The path to the CBS hive. This is an optional parameter.\n The CBS subkey of the current system will be used if this parameter is not set.\n");
         menu.AppendLine("-log: The path to the .txt file which contains the list of keys or key/values to repair. This is an optional parameter.\n");
         menu.AppendLine("-version: The VersionedIndex number which the component family belongs to. This is an optional parameter.\n");
-        menu.AppendLine("--full: Determines if you wish to rebuild (the) entire key(s). This is an optional parameter. By default, only the specified values will be rebuilt. If -key is set, then -full is implied to be set as well.\n");
+        menu.AppendLine("--full: Determines if you wish to rebuild (the) entire key(s). This is an optional parameter. By default, only the specified values will be rebuilt. If -key is set, then --full is implied to be set as well.\n");
         
         menu.AppendLine("Available Build/Repair Options: \n");
         menu.AppendLine("--components - Build Missing Component Key(s)");
