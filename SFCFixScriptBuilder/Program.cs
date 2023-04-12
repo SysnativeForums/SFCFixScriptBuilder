@@ -1,5 +1,4 @@
-﻿using System.Runtime.CompilerServices;
-using System.Text;
+﻿using System.Text;
 using SFCFixScriptBuilder.RegistryHiveLoader;
 using SFCFixScriptBuilder.RegistryScriptBuilder;
 using static System.Environment;
@@ -19,7 +18,7 @@ internal class Program
             string cbs = string.Empty;
             bool fullkey = false;
 
-            Console.WriteLine("SFCFixScriptBuilder version 0.0.4--prerelease\n");
+            Console.WriteLine("SFCFixScriptBuilder version 0.0.5--prerelease\n");
 
             if (arguments.Contains("--help"))
             {
