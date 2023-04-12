@@ -148,6 +148,9 @@ internal class Program
         menu.AppendLine("--packagedetect - Build Missing Package Detect Key(s)");
         menu.AppendLine("--componentdetect - Build Missing Component Detect Key(s)");
         Console.WriteLine(menu.ToString());
+
+        Console.WriteLine("Please press any key to exit...");
+        Console.ReadKey();
     }
 
     private static int LoadHive(string path, string name)
