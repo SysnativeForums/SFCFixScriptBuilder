@@ -10,6 +10,7 @@ internal class Program
         try
         {
             string[] arguments = GetCommandLineArgs();
+
             string hive = string.Empty;
             string log = string.Empty;
             string option = string.Empty;
@@ -17,8 +18,9 @@ internal class Program
             string version = string.Empty;
             string cbs = string.Empty;
             bool fullkey = false;
+            bool siblings = false;
 
-            Console.WriteLine("SFCFixScriptBuilder version 0.0.5--prerelease\n");
+            Console.WriteLine("SFCFixScriptBuilder version 0.0.6--prerelease\n");
 
             if (arguments.Contains("--help"))
             {
@@ -55,6 +57,11 @@ internal class Program
                 {
                     fullkey = true;
                 }
+
+                if (arguments.Contains("--sibilings"))
+                {
+                    siblings = true;
+                }
             }
 
             if (string.IsNullOrWhiteSpace(log) && string.IsNullOrWhiteSpace(key))
@@ -70,11 +77,12 @@ internal class Program
             {
                 case "--components":
                     LoadComponentsHive(hive, "SOURCE", ref builder);
-                    await builder.BuildMissingComponentsAsync(fullkey);
+                    await builder.BuildMissingComponentsAsync(fullkey, siblings);
                     break;
                 case "--deployments":
+                    if (!string.IsNullOrWhiteSpace(cbs)) LoadCBSHive(cbs, "CBS", ref builder);
                     LoadComponentsHive(hive, "SOURCE", ref builder);
-                    await builder.BuildMissingDeploymentsAsync(fullkey);
+                    await builder.BuildMissingDeploymentsAsync(fullkey, siblings);
                     break;
                 case "--families":
                     LoadComponentsHive(hive, "SOURCE", ref builder);
@@ -85,20 +93,20 @@ internal class Program
                     await builder.BuildMissingCatalogsAsync(fullkey);
                     break;
                 case "--packages":
-                    if (!string.IsNullOrWhiteSpace(cbs)) LoadHive(cbs, "CBS");
-                    await builder.BuildMissingPackagesAsync(cbs, fullkey);
+                    if (!string.IsNullOrWhiteSpace(cbs)) LoadCBSHive(cbs, "CBS", ref builder);
+                    await builder.BuildMissingPackagesAsync(fullkey);
                     break;
                 case "--indexes":
-                    if (!string.IsNullOrWhiteSpace(cbs)) LoadHive(cbs, "CBS");
-                    await builder.BuildMissingPackageIndexesAsync(cbs, fullkey);
+                    if (!string.IsNullOrWhiteSpace(cbs)) LoadCBSHive(cbs, "CBS", ref builder);
+                    await builder.BuildMissingPackageIndexesAsync(fullkey);
                     break;
                 case "--packagedetect":
-                    if (!string.IsNullOrWhiteSpace(cbs)) LoadHive(cbs, "CBS");
-                    await builder.BuildMissingPackageDetectAsync(cbs, fullkey);
+                    if (!string.IsNullOrWhiteSpace(cbs)) LoadCBSHive(cbs, "CBS", ref builder);
+                    await builder.BuildMissingPackageDetectAsync(fullkey);
                     break;
                 case "--componentdetect":
-                    if (!string.IsNullOrWhiteSpace(cbs)) LoadHive(cbs, "CBS");
-                    await builder.BuildMissingComponentDetectAsync(cbs, fullkey);
+                    if (!string.IsNullOrWhiteSpace(cbs)) LoadCBSHive(cbs, "CBS", ref builder);
+                    await builder.BuildMissingComponentDetectAsync(fullkey);
                     break;
                 default:
                     Console.WriteLine("Please provide a valid option");
@@ -174,6 +182,12 @@ internal class Program
         }
 
         builder.SetComponentsHiveName(name);
+    }
+
+    private static void LoadCBSHive(string path, string name, ref RegistryScriptBuilder builder)
+    {
+        LoadHive(path, name);
+        builder.SetComponentBasedServicingPath(name);
     }
 
     private static void UnloadHive(string name)
