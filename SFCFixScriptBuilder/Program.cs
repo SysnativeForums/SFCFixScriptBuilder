@@ -58,7 +58,7 @@ internal class Program
                     fullkey = true;
                 }
 
-                if (arguments.Contains("--sibilings"))
+                if (arguments.Contains("--siblings"))
                 {
                     siblings = true;
                 }
@@ -145,6 +145,7 @@ internal class Program
         menu.AppendLine("-log: The path to the .txt file which contains the list of keys or key/values to repair. This is an optional parameter.\n");
         menu.AppendLine("-version: The VersionedIndex number which the component family belongs to. This is an optional parameter.\n");
         menu.AppendLine("--full: Determines if you wish to rebuild (the) entire key(s). This is an optional parameter. By default, only the specified values will be rebuilt. If -key is set, then --full is implied to be set as well.\n");
+        menu.AppendLine("--siblings: Determines if you wish to rebuild the keys associated to the given key(s). This is an optional parameter. --siblings implies that --full is applied to the sibling key. \n");
         
         menu.AppendLine("Available Build/Repair Options: \n");
         menu.AppendLine("--components - Build Missing Component Key(s)");
