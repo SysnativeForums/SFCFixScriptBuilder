@@ -109,10 +109,10 @@ namespace SFCFixScriptBuilder.RegistryScriptBuilder
             CloseKeys(catalogs);
         }
 
-        public async Task BuildMissingComponentsAsync(bool buildkey, bool sibiling_mode)
+        public async Task BuildMissingComponentsAsync(bool buildkey, bool sibling_mode)
         {
             RegistryKey components = HKLM.OpenSubKey(@$"{COMPONENTS}\DerivedData\Components");
-            SiblingKeyType type = sibiling_mode ? SiblingKeyType.Deployment : SiblingKeyType.None;
+            SiblingKeyType type = sibling_mode ? SiblingKeyType.Deployment : SiblingKeyType.None;
             
             if (string.IsNullOrWhiteSpace(KeyName))
             {
