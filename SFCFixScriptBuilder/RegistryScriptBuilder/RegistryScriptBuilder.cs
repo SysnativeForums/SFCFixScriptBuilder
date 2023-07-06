@@ -9,10 +9,8 @@ namespace SFCFixScriptBuilder.RegistryScriptBuilder
 {
     public class RegistryScriptBuilder
     {
-        private RegistryKey HKLM = HiveLoader.HKLM;
-        private string COMPONENTS = "COMPONENTS";
-        private string CBS = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing";
-        private string Desktop = $@"{GetEnvironmentVariable("userprofile")}\Desktop";
+        private readonly RegistryKey HKLM = HiveLoader.HKLM;
+        private readonly string Desktop = $@"{GetEnvironmentVariable("userprofile")}\Desktop";
         
         private string LogPath = string.Empty;
         private string KeyName = string.Empty;
@@ -25,19 +23,9 @@ namespace SFCFixScriptBuilder.RegistryScriptBuilder
             Version = version;
         }
 
-        public void SetComponentsHiveName(string name)
-        {
-            COMPONENTS = name;
-        }
-
-        public void SetComponentBasedServicingPath(string name)
-        {
-            CBS = name;
-        }
-
         private string BuildAssociatedDeployment(string deployment_name)
         {
-            RegistryKey deployments = HKLM.OpenSubKey($@"{COMPONENTS}\CanonicalData\Deployments");
+            RegistryKey deployments = HKLM.OpenSubKey($@"{RegistryConfig.COMPONENTS}\CanonicalData\Deployments");
             StringBuilder builder = new StringBuilder();
 
             string prefix = Prefixes.DeploymentsPrefix;
@@ -64,7 +52,7 @@ namespace SFCFixScriptBuilder.RegistryScriptBuilder
 
         private string BuildAssociatedPackage(string package_name, RegistryKey parent_key)
         {            
-            RegistryKey packages = HKLM.OpenSubKey($@"{CBS}\Packages");
+            RegistryKey packages = HKLM.OpenSubKey($@"{RegistryConfig.CBS}\Packages");
             StringBuilder builder = new StringBuilder();
 
             //Need to loop over the values, get the actual package name and add those to package_names
@@ -93,135 +81,52 @@ namespace SFCFixScriptBuilder.RegistryScriptBuilder
             return builder.ToString();
         }
 
-        public async Task BuildMissingCatalogsAsync(bool buildkey)
+        private SiblingKeyType GetSiblingKeyType(string prefix) => prefix switch
         {
-            RegistryKey catalogs = HKLM.OpenSubKey(@$"{COMPONENTS}\CanonicalData\Catalogs");
+            string p when p == Prefixes.ComponentsPrefix => SiblingKeyType.Deployment,
+            string p when p == Prefixes.DeploymentsPrefix => SiblingKeyType.Package,
+            _ => SiblingKeyType.None
+        };
+
+        public async Task BuildMissingKeysAsync(string path, string prefix, bool buildkey = false, bool sibling_mode = false)
+        {
+            RegistryKey keys = HKLM.OpenSubKey(path);
+            SiblingKeyType type = sibling_mode ? GetSiblingKeyType(prefix) : SiblingKeyType.None;
 
             if (string.IsNullOrWhiteSpace(KeyName))
             {
-                await BuildRegistryKeysScriptAsync(catalogs, Prefixes.CatalogsPrefix, buildkey);
+                await BuildRegistryKeysScriptAsync(keys, prefix, buildkey, type);
             }
             else
             {
-                await BuildRegistryKeyScriptAsync(catalogs, Prefixes.CatalogsPrefix);
+                await BuildRegistryKeyScriptAsync(keys, prefix, type);
             }
 
-            CloseKeys(catalogs);
-        }
-
-        public async Task BuildMissingComponentsAsync(bool buildkey, bool sibling_mode)
-        {
-            RegistryKey components = HKLM.OpenSubKey(@$"{COMPONENTS}\DerivedData\Components");
-            SiblingKeyType type = sibling_mode ? SiblingKeyType.Deployment : SiblingKeyType.None;
-            
-            if (string.IsNullOrWhiteSpace(KeyName))
-            {
-                await BuildRegistryKeysScriptAsync(components, Prefixes.ComponentsPrefix, buildkey, type);
-            }
-            else
-            {
-                await BuildRegistryKeyScriptAsync(components, Prefixes.ComponentsPrefix, type);
-            }
-
-            CloseKeys(components);
-        }
-
-        public async Task BuildMissingDeploymentsAsync(bool buildkey, bool sibling_mode)
-        {
-            RegistryKey deployments = HKLM.OpenSubKey($@"{COMPONENTS}\CanonicalData\Deployments");
-            SiblingKeyType type = sibling_mode ? SiblingKeyType.Package : SiblingKeyType.None;
-            
-            if (string.IsNullOrWhiteSpace(KeyName))
-            {
-                await BuildRegistryKeysScriptAsync(deployments, Prefixes.DeploymentsPrefix, buildkey, type);
-            }
-            else
-            {
-                await BuildRegistryKeyScriptAsync(deployments, Prefixes.DeploymentsPrefix, type);
-            }
-
-            CloseKeys(deployments);
+            CloseKeys(keys);
         }
 
         public async Task BuildMissingComponentFamiliesAsync(bool buildKey)
         {
             string prefix = Prefixes.ComponentFamiliesPrefix.Replace("{Version}", Version);
-            RegistryKey component_families = HKLM.OpenSubKey(@$"{COMPONENTS}\DerivedData\VersionedIndex\{Version}\ComponentFamilies");
-            
-            if (string.IsNullOrWhiteSpace(KeyName))
-            {
-                await BuildRegistryKeysScriptAsync(component_families, prefix, buildKey);
-            }
-            else
-            {
-                await BuildRegistryKeyScriptAsync(component_families, prefix);
-            }
-            
-            CloseKeys(component_families);
-        }
+            RegistryKey versioned_index = HKLM.OpenSubKey(@$"{RegistryConfig.COMPONENTS}\DerivedData\VersionedIndex");
 
-        public async Task BuildMissingPackagesAsync(bool buildKey)
-        {
-            RegistryKey packages = HKLM.OpenSubKey($@"{CBS}\Packages");
+            foreach (string version in versioned_index.GetSubKeyNames())
+            {
+                RegistryKey component_families = HKLM.OpenSubKey(@$"{RegistryConfig.COMPONENTS}\DerivedData\VersionedIndex\{version}\ComponentFamilies");
 
-            if (string.IsNullOrWhiteSpace(KeyName))
-            {
-                await BuildRegistryKeysScriptAsync(packages, Prefixes.PackagesPrefix, buildKey);
-            }
-            else
-            {
-                await BuildRegistryKeyScriptAsync(packages, Prefixes.PackagesPrefix);
+                if (string.IsNullOrWhiteSpace(KeyName))
+                {
+                    await BuildRegistryKeysScriptAsync(component_families, prefix, buildKey);
+                }
+                else
+                {
+                    await BuildRegistryKeyScriptAsync(component_families, prefix);
+                }
+
+                CloseKeys(component_families);
             }
 
-            CloseKeys(packages);
-        }
-
-        public async Task BuildMissingPackageIndexesAsync(bool buildKey)
-        {
-            RegistryKey indexes = HKLM.OpenSubKey($@"{CBS}\PackageIndex");
-
-            if (string.IsNullOrWhiteSpace(KeyName))
-            {
-                await BuildRegistryKeysScriptAsync(indexes, Prefixes.PackageIndexPrefix, buildKey);
-            }
-            else
-            {
-                await BuildRegistryKeyScriptAsync(indexes, Prefixes.PackageIndexPrefix);
-            }
-
-            CloseKeys(indexes);
-        }
-        
-        public async Task BuildMissingPackageDetectAsync(bool buildKey)
-        {
-            RegistryKey packageDetect = HKLM.OpenSubKey($@"{CBS}\PackageDetect");
-
-            if (string.IsNullOrWhiteSpace(KeyName))
-            {
-                await BuildRegistryKeysScriptAsync(packageDetect, Prefixes.PackageDetectPrefix, buildKey);
-            }
-            else
-            {
-                await BuildRegistryKeyScriptAsync(packageDetect, Prefixes.PackageDetectPrefix);
-            }
-
-            CloseKeys(packageDetect);
-        }
-
-        public async Task BuildMissingComponentDetectAsync(bool buildKey)
-        {
-            RegistryKey componentDetect = HKLM.OpenSubKey($@"{CBS}\ComponentDetect");
-
-            if (string.IsNullOrWhiteSpace(KeyName))
-            {
-                await BuildRegistryKeysScriptAsync(componentDetect, Prefixes.ComponentDetectPrefix, buildKey);
-            }
-            else
-            {
-                await BuildRegistryKeyScriptAsync(componentDetect, Prefixes.ComponentDetectPrefix);
-            }
-
-            CloseKeys(componentDetect);
+            CloseKeys(versioned_index);
         }
 
         #region Helpers
@@ -425,7 +330,7 @@ namespace SFCFixScriptBuilder.RegistryScriptBuilder
                     break;
             }
 
-            return value_data;
+            return value_data?.Trim();
         }
 
         private string BuildAssociatedKey(SiblingKeyType type, string key_name, RegistryKey parent_key = null)

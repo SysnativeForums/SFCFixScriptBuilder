@@ -1,4 +1,6 @@
 ﻿using System.Text;
+using SFCFixScriptBuilder;
+using SFCFixScriptBuilder.Constants;
 using SFCFixScriptBuilder.RegistryHiveLoader;
 using SFCFixScriptBuilder.RegistryScriptBuilder;
 using static System.Environment;
@@ -76,37 +78,37 @@ internal class Program
             switch (option)
             {
                 case "--components":
-                    LoadComponentsHive(hive, "SOURCE", ref builder);
-                    await builder.BuildMissingComponentsAsync(fullkey, siblings);
+                    LoadComponentsHive(hive, "SOURCE");
+                    await builder.BuildMissingKeysAsync(@$"{RegistryConfig.COMPONENTS}\DerivedData\Components", Prefixes.ComponentsPrefix, fullkey, siblings);
                     break;
                 case "--deployments":
-                    if (!string.IsNullOrWhiteSpace(cbs)) LoadCBSHive(cbs, "CBS", ref builder);
-                    LoadComponentsHive(hive, "SOURCE", ref builder);
-                    await builder.BuildMissingDeploymentsAsync(fullkey, siblings);
+                    if (!string.IsNullOrWhiteSpace(cbs)) LoadCBSHive(cbs, "CBS");
+                    LoadComponentsHive(hive, "SOURCE");
+                    await builder.BuildMissingKeysAsync($@"{RegistryConfig.COMPONENTS}\CanonicalData\Deployments", Prefixes.DeploymentsPrefix, fullkey, siblings);
                     break;
                 case "--families":
-                    LoadComponentsHive(hive, "SOURCE", ref builder);
+                    LoadComponentsHive(hive, "SOURCE");
                     await builder.BuildMissingComponentFamiliesAsync(fullkey);
                     break;
                 case "--catalogs":
-                    LoadComponentsHive(hive, "SOURCE", ref builder);
-                    await builder.BuildMissingCatalogsAsync(fullkey);
+                    LoadComponentsHive(hive, "SOURCE");
+                    await builder.BuildMissingKeysAsync(@$"{RegistryConfig.COMPONENTS}\CanonicalData\Catalogs", Prefixes.CatalogsPrefix, fullkey);
                     break;
                 case "--packages":
-                    if (!string.IsNullOrWhiteSpace(cbs)) LoadCBSHive(cbs, "CBS", ref builder);
-                    await builder.BuildMissingPackagesAsync(fullkey);
+                    if (!string.IsNullOrWhiteSpace(cbs)) LoadCBSHive(cbs, "CBS");
+                    await builder.BuildMissingKeysAsync($@"{RegistryConfig.CBS}\Packages", Prefixes.PackagesPrefix, fullkey);
                     break;
                 case "--indexes":
-                    if (!string.IsNullOrWhiteSpace(cbs)) LoadCBSHive(cbs, "CBS", ref builder);
-                    await builder.BuildMissingPackageIndexesAsync(fullkey);
+                    if (!string.IsNullOrWhiteSpace(cbs)) LoadCBSHive(cbs, "CBS");
+                    await builder.BuildMissingKeysAsync($@"{RegistryConfig.CBS}\PackageIndex", Prefixes.PackageIndexPrefix, fullkey);
                     break;
                 case "--packagedetect":
-                    if (!string.IsNullOrWhiteSpace(cbs)) LoadCBSHive(cbs, "CBS", ref builder);
-                    await builder.BuildMissingPackageDetectAsync(fullkey);
+                    if (!string.IsNullOrWhiteSpace(cbs)) LoadCBSHive(cbs, "CBS");
+                    await builder.BuildMissingKeysAsync($@"{RegistryConfig.CBS}\PackageDetect", Prefixes.PackageDetectPrefix, fullkey);
                     break;
                 case "--componentdetect":
-                    if (!string.IsNullOrWhiteSpace(cbs)) LoadCBSHive(cbs, "CBS", ref builder);
-                    await builder.BuildMissingComponentDetectAsync(fullkey);
+                    if (!string.IsNullOrWhiteSpace(cbs)) LoadCBSHive(cbs, "CBS");
+                    await builder.BuildMissingKeysAsync($@"{RegistryConfig.CBS}\ComponentDetect", Prefixes.ComponentDetectPrefix, fullkey);
                     break;
                 default:
                     Console.WriteLine("Please provide a valid option");
@@ -171,24 +173,24 @@ internal class Program
         return result;
     }
 
-    private static void LoadComponentsHive(string path, string name, ref RegistryScriptBuilder builder)
+    private static void LoadComponentsHive(string path, string name)
     {
         //Attempt to load the hive, if COMPONENTS hive has already been loaded then this will return an error
         int result = LoadHive(path, name);
 
         if (result != 0) 
         {
-            //Assume that COMPONENTS hive must have already been loaded
-            return;
+            //Throw an exception when the hive file can not be loaded
+            throw new Exception("Unable to load the COMPONENTS hive file.");
         }
 
-        builder.SetComponentsHiveName(name);
+        RegistryConfig.COMPONENTS = name;
     }
 
-    private static void LoadCBSHive(string path, string name, ref RegistryScriptBuilder builder)
+    private static void LoadCBSHive(string path, string name)
     {
         LoadHive(path, name);
-        builder.SetComponentBasedServicingPath(name);
+        RegistryConfig.CBS = name;
     }
 
     private static void UnloadHive(string name)
