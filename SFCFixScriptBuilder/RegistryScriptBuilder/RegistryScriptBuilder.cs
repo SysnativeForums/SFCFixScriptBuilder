@@ -321,17 +321,9 @@ namespace SFCFixScriptBuilder.RegistryScriptBuilder
                     byte[] hex_data = data as byte[];
                     formatted_value = BitConverter.ToString(hex_data)?.Replace("-", ",").ToLower();
                     
-                    if (value_name == "identity")
+                    if (formatted_value.Length > 63)
                     {
-                        IList<string> slices = Formatter.FormatRegBinary(formatted_value, formatted_value.Length - 1);
-
-                        string joined_slices = string.Empty;
-                        Array.ForEach<string>(slices.ToArray(), s =>
-                        {
-                            joined_slices += s;
-                        });
-
-                        formatted_value = joined_slices;
+                        formatted_value = Formatter.FormatRegBinary(formatted_value, formatted_value.Length - 1);
                     }
 
                     value_data = $"\"{value_name}\"=hex:{formatted_value}";

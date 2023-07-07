@@ -1,12 +1,12 @@
-﻿namespace SFCFixScriptBuilder.Helpers
+﻿using System.Text;
+
+namespace SFCFixScriptBuilder.Helpers
 {
     public static class Formatter
     {
-        public static IList<string> FormatRegBinary(string value, int end, int start = 63, int step = 75)
+        public static string FormatRegBinary(string value, int end, int start = 63, int step = 75)
         {
-            string first_slice = $"{value.Substring(0, 63)}\\\n";
-            string second_slice = $"{value.Substring(63, 75)}\\\n";
-            IList<string> slices = new List<string> { first_slice, second_slice };
+            StringBuilder builder = new StringBuilder($"{value.Substring(0, 63)}\\\n");
 
             Range range = new Range(start, end);
 
@@ -14,16 +14,16 @@
             {
                 if (i + step < end)
                 {
-                    slices.Add($"{value.Substring(i, step)}\\\n");
+                    builder.AppendLine($"{value.Substring(i, step)}\\");
                 }
                 else
                 {
-                    slices.Add($@"{value.Substring(i)}");
+                    builder.AppendLine($@"{value.Substring(i)}");
                     break;
                 }
             }
 
-            return slices;
+            return builder.ToString();
         }
     }
 }

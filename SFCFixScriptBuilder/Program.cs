@@ -22,7 +22,7 @@ internal class Program
             bool fullkey = false;
             bool siblings = false;
 
-            Console.WriteLine("SFCFixScriptBuilder version 0.0.6--prerelease\n");
+            Console.WriteLine("SFCFixScriptBuilder version 0.0.7--prerelease\n");
 
             if (arguments.Contains("--help"))
             {
