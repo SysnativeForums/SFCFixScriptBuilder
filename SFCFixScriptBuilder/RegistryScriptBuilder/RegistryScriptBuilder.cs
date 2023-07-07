@@ -1,5 +1,6 @@
 ﻿using Microsoft.Win32;
 using SFCFixScriptBuilder.Constants;
+using SFCFixScriptBuilder.Helpers;
 using SFCFixScriptBuilder.RegistryHiveLoader;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -319,6 +320,19 @@ namespace SFCFixScriptBuilder.RegistryScriptBuilder
                 case RegistryValueKind.Binary:
                     byte[] hex_data = data as byte[];
                     formatted_value = BitConverter.ToString(hex_data)?.Replace("-", ",").ToLower();
+                    
+                    if (value_name == "identity")
+                    {
+                        IList<string> slices = Formatter.FormatRegBinary(formatted_value, formatted_value.Length - 1);
+
+                        string joined_slices = string.Empty;
+                        Array.ForEach<string>(slices.ToArray(), s =>
+                        {
+                            joined_slices += s;
+                        });
+
+                        formatted_value = joined_slices;
+                    }
 
                     value_data = $"\"{value_name}\"=hex:{formatted_value}";
                     break;
