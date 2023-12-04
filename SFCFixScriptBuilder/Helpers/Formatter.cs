@@ -6,11 +6,11 @@ namespace SFCFixScriptBuilder.Helpers
     {
         public static string FormatRegBinary(string value, int end, int start = 63, int step = 75)
         {
-            StringBuilder builder = new StringBuilder($"{value.Substring(0, 63)}\\\n");
+            var builder = new StringBuilder($"{value.Substring(0, 63)}\\\n");
 
-            Range range = new Range(start, end);
+            var range = new Range(start, end);
 
-            foreach (int i in range.Iterate(step))
+            foreach (var i in range.Iterate(step))
             {
                 if (i + step < end)
                 {

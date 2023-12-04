@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using Microsoft.Win32;
 using SFCFixScriptBuilder;
 using SFCFixScriptBuilder.Constants;
 using SFCFixScriptBuilder.RegistryHiveLoader;
@@ -22,7 +23,7 @@ internal class Program
             bool fullkey = false;
             bool siblings = false;
 
-            Console.WriteLine("SFCFixScriptBuilder version 0.0.7--prerelease\n");
+            Console.WriteLine("SFCFixScriptBuilder version 0.0.8--prerelease\n");
 
             if (arguments.Contains("--help"))
             {
@@ -115,7 +116,7 @@ internal class Program
                     return;
             }
 
-            Console.WriteLine("SFCFixScript.txt has been succesfully written to %userprofile%\\Desktop \n");
+            Console.WriteLine("SFCFixScript.txt has been successfully written to %userprofile%\\Desktop \n");
         }
         catch (Exception e)
         {
@@ -133,7 +134,7 @@ internal class Program
 
     private static void BuildHelpMenu()
     {
-        StringBuilder menu = new StringBuilder();
+        var menu = new StringBuilder();
 
         menu.AppendLine("SFCFixScriptBuilder Help\n");
         menu.AppendLine("Repair Key(s)/Value(s): SFCFixScriptBuilder -hive <Path to hive> -log <Path to log> <option>");
@@ -167,7 +168,7 @@ internal class Program
     private static int LoadHive(string path, string name)
     {
         HiveLoader.GrantPrivileges();
-        int result = HiveLoader.LoadHive(path, name);
+        var result = HiveLoader.LoadHive(path, name);
         HiveLoader.RevokePrivileges();
 
         return result;
@@ -176,12 +177,14 @@ internal class Program
     private static void LoadComponentsHive(string path, string name)
     {
         //Attempt to load the hive, if COMPONENTS hive has already been loaded then this will return an error
-        int result = LoadHive(path, name);
+        var result = 0;
+
+        if (!Registry.LocalMachine.GetSubKeyNames().Contains(name)) result = LoadHive(path, name);
 
         if (result != 0) 
         {
             //Throw an exception when the hive file can not be loaded
-            throw new Exception("Unable to load the COMPONENTS hive file.");
+            throw new Exception($"Unable to load the COMPONENTS hive file due to the following error code: {result:X2}.");
         }
 
         RegistryConfig.COMPONENTS = name;

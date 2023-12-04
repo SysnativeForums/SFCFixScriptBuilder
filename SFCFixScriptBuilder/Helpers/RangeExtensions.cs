@@ -4,7 +4,7 @@
     {
         public static IEnumerable<int> Iterate(this Range range, int step = 1)
         {
-            for (int i = range.Start.Value; i < range.End.Value; i += step)
+            for (var i = range.Start.Value; i < range.End.Value; i += step)
             {
                 yield return i;
             }

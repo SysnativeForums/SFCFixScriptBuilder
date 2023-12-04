@@ -11,27 +11,27 @@ namespace SFCFixScriptBuilder.RegistryScriptBuilder
     public class RegistryScriptBuilder
     {
         private readonly RegistryKey HKLM = HiveLoader.HKLM;
-        private readonly string Desktop = $@"{GetEnvironmentVariable("userprofile")}\Desktop";
+        private readonly string _desktop = $@"{GetEnvironmentVariable("userprofile")}\Desktop";
         
-        private string LogPath = string.Empty;
-        private string KeyName = string.Empty;
-        private string Version = string.Empty;
+        private string _logPath = string.Empty;
+        private string _keyName = string.Empty;
+        private string _version = string.Empty;
 
         public RegistryScriptBuilder(string logPath, string key, string version) 
         {
-            LogPath = logPath;
-            KeyName = key;
-            Version = version;
+            _logPath = logPath;
+            _keyName = key;
+            _version = version;
         }
 
         private string BuildAssociatedDeployment(string deployment_name)
         {
-            RegistryKey deployments = HKLM.OpenSubKey($@"{RegistryConfig.COMPONENTS}\CanonicalData\Deployments");
-            StringBuilder builder = new StringBuilder();
+            var deployments = HKLM.OpenSubKey($@"{RegistryConfig.COMPONENTS}\CanonicalData\Deployments");
+            var builder = new StringBuilder();
 
-            string prefix = Prefixes.DeploymentsPrefix;
+            var prefix = Prefixes.DeploymentsPrefix;
 
-            RegistryKey deployment = deployments.OpenSubKey(deployment_name.Replace("c!", string.Empty));
+            var deployment = deployments.OpenSubKey(deployment_name.Replace("c!", string.Empty));
 
             if (deployment is null)
             {
@@ -42,40 +42,40 @@ namespace SFCFixScriptBuilder.RegistryScriptBuilder
             builder.AppendLine(string.Empty);
             builder.AppendLine($"{prefix}{deployment_name}]");
 
-            foreach (string value in deployment.GetValueNames())
+            foreach (var value in deployment.GetValueNames())
             {
-                string line = BuildRegistryValue(deployment, value);
+                var line = BuildRegistryValue(deployment, value);
                 builder.AppendLine(line);
             }
 
             return builder.ToString();
         }
 
-        private string BuildAssociatedPackage(string package_name, RegistryKey parent_key)
+        private string BuildAssociatedPackage(string packageName, RegistryKey parent_key)
         {            
-            RegistryKey packages = HKLM.OpenSubKey($@"{RegistryConfig.CBS}\Packages");
-            StringBuilder builder = new StringBuilder();
+            var packages = HKLM.OpenSubKey($@"{RegistryConfig.CBS}\Packages");
+            var builder = new StringBuilder();
 
-            //Need to loop over the values, get the actual package name and add those to package_names
-            string prefix = Prefixes.PackagesPrefix;
+            //Need to loop over the values, get the actual package name and add those to packageNames
+            var prefix = Prefixes.PackagesPrefix;
 
-            byte[] value_data = parent_key.GetValue(package_name) as byte[];
-            string decoded_name = Encoding.ASCII.GetString(value_data);
+            byte[] valueData = parent_key.GetValue(packageName) as byte[];
+            var decodedName = Encoding.ASCII.GetString(valueData);
 
-            decoded_name = Regex.Replace(decoded_name, ".{1}.+\\0{1,7}", string.Empty);
-            string version = Regex.Match(decoded_name, "\\d{1,4}\\.\\d{1,4}\\.\\d{1,5}\\.\\d{1,4}").Value;
-            decoded_name = Regex.Replace(decoded_name, "(?>~~).*", string.Empty);
-            package_name = $"{decoded_name}~~{version}";
+            decodedName = Regex.Replace(decodedName, ".{1}.+\\0{1,7}", string.Empty);
+            var version = Regex.Match(decodedName, "\\d{1,4}\\.\\d{1,4}\\.\\d{1,5}\\.\\d{1,4}").Value;
+            decodedName = Regex.Replace(decodedName, "(?>~~).*", string.Empty);
+            packageName = $"{decodedName}~~{version}";
 
             //Need to decode the actual package name from the value data itself
-            RegistryKey package = packages.OpenSubKey(package_name);
+            var package = packages.OpenSubKey(packageName);
 
             builder.AppendLine(string.Empty);
-            builder.AppendLine($"{prefix}{package_name}]");
+            builder.AppendLine($"{prefix}{packageName}]");
 
-            foreach (string value in package.GetValueNames())
+            foreach (var value in package.GetValueNames())
             {
-                string line = BuildRegistryValue(package, value);
+                var line = BuildRegistryValue(package, value);
                 builder.AppendLine(line);
             }
 
@@ -84,17 +84,17 @@ namespace SFCFixScriptBuilder.RegistryScriptBuilder
 
         private SiblingKeyType GetSiblingKeyType(string prefix) => prefix switch
         {
-            string p when p == Prefixes.ComponentsPrefix => SiblingKeyType.Deployment,
-            string p when p == Prefixes.DeploymentsPrefix => SiblingKeyType.Package,
+            var p when p == Prefixes.ComponentsPrefix => SiblingKeyType.Deployment,
+            var p when p == Prefixes.DeploymentsPrefix => SiblingKeyType.Package,
             _ => SiblingKeyType.None
         };
 
         public async Task BuildMissingKeysAsync(string path, string prefix, bool buildkey = false, bool sibling_mode = false)
         {
-            RegistryKey keys = HKLM.OpenSubKey(path);
-            SiblingKeyType type = sibling_mode ? GetSiblingKeyType(prefix) : SiblingKeyType.None;
+            var keys = HKLM.OpenSubKey(path);
+            var type = sibling_mode ? GetSiblingKeyType(prefix) : SiblingKeyType.None;
 
-            if (string.IsNullOrWhiteSpace(KeyName))
+            if (string.IsNullOrWhiteSpace(_keyName))
             {
                 await BuildRegistryKeysScriptAsync(keys, prefix, buildkey, type);
             }
@@ -108,23 +108,23 @@ namespace SFCFixScriptBuilder.RegistryScriptBuilder
 
         public async Task BuildMissingComponentFamiliesAsync(bool buildKey)
         {
-            string prefix = Prefixes.ComponentFamiliesPrefix.Replace("{Version}", Version);
-            RegistryKey versioned_index = HKLM.OpenSubKey(@$"{RegistryConfig.COMPONENTS}\DerivedData\VersionedIndex");
+            var prefix = Prefixes.ComponentFamiliesPrefix.Replace("{Version}", _version);
+            var versioned_index = HKLM.OpenSubKey(@$"{RegistryConfig.COMPONENTS}\DerivedData\VersionedIndex");
 
             foreach (string version in versioned_index.GetSubKeyNames())
             {
-                RegistryKey component_families = HKLM.OpenSubKey(@$"{RegistryConfig.COMPONENTS}\DerivedData\VersionedIndex\{version}\ComponentFamilies");
+                var componentFamilies = HKLM.OpenSubKey(@$"{RegistryConfig.COMPONENTS}\DerivedData\VersionedIndex\{version}\ComponentFamilies");
 
-                if (string.IsNullOrWhiteSpace(KeyName))
+                if (string.IsNullOrWhiteSpace(_keyName))
                 {
-                    await BuildRegistryKeysScriptAsync(component_families, prefix, buildKey);
+                    await BuildRegistryKeysScriptAsync(componentFamilies, prefix, buildKey);
                 }
                 else
                 {
-                    await BuildRegistryKeyScriptAsync(component_families, prefix);
+                    await BuildRegistryKeyScriptAsync(componentFamilies, prefix);
                 }
 
-                CloseKeys(component_families);
+                CloseKeys(componentFamilies);
             }
 
             CloseKeys(versioned_index);
@@ -141,22 +141,22 @@ namespace SFCFixScriptBuilder.RegistryScriptBuilder
 
         private async Task WriteSFCFixScriptAsync(StringBuilder builder)
         {
-            string lines = builder.ToString();
-            string path = @$"{Desktop}\SFCFixScript.txt";
-            string answer = "n";
+            var lines = builder.ToString();
+            var path = @$"{_desktop}\SFCFixScript.txt";
+            var answer = "n";
 
             if (File.Exists(path)) {
 
-                int file_count = Directory.EnumerateFiles(Desktop).Where(f => f.Contains("SFCFixScript")).Count();
+                var file_count = Directory.EnumerateFiles(_desktop).Where(f => f.Contains("SFCFixScript")).Count();
 
                 Console.ForegroundColor = ConsoleColor.Yellow;
                 Console.Write("Warning: An existing SFCFixScript.txt file was found, do you wish to overwrite it [y/n]: ");
                 answer = Console.ReadLine();
                 Console.ResetColor();
 
-                if (answer.ToLower() == "n")
+                if (answer?.ToLower() == "n")
                 {
-                    await File.WriteAllTextAsync(@$"{Desktop}\SFCFixScript ({file_count + 1}).txt", lines);
+                    await File.WriteAllTextAsync(@$"{_desktop}\SFCFixScript ({file_count + 1}).txt", lines);
                     return;
                 }
             }
@@ -166,50 +166,50 @@ namespace SFCFixScriptBuilder.RegistryScriptBuilder
 
         private async Task BuildRegistryKeyScriptAsync(RegistryKey keys, string prefix, SiblingKeyType type = SiblingKeyType.None)
         {
-            StringBuilder builder = new StringBuilder("::\n");
-            StringBuilder associated_keys = new StringBuilder();
-            Regex pattern = new Regex("[cisp]\\!");
+            var builder = new StringBuilder("::\n");
+            var associatedKeys = new StringBuilder();
+            var pattern = new Regex("[cisp]\\!");
 
-            HashSet<string> checked_keys = new HashSet<string>();
+            var checkedKeys = new HashSet<string>();
 
-            string[] segments = KeyName.Split('\\');
-            int length = segments.Length;
-            string key_name = segments[length - 1];
+            string[] segments = _keyName.Split('\\');
+            var length = segments.Length;
+            var keyName = segments[length - 1];
 
-            RegistryKey key = keys.OpenSubKey(key_name);
+            var key = keys.OpenSubKey(keyName);
 
             if (key is null)
             {
-                Console.WriteLine($"Unable to find key: {key_name}");
+                Console.WriteLine($"Unable to find key: {keyName}");
                 key.Close();
                 return;
             }
 
-            builder.AppendLine($"{prefix}{key_name}]");
+            builder.AppendLine($"{prefix}{keyName}]");
 
-            foreach (string value in key.GetValueNames())
+            foreach (var value in key.GetValueNames())
             {
-                string line = BuildRegistryValue(key, value);
+                var line = BuildRegistryValue(key, value);
                 builder.AppendLine(line);
 
                 if (type is not SiblingKeyType.None && pattern.IsMatch(value))
                 {
-                    if (checked_keys.Contains(pattern.Replace(value, string.Empty))) continue;
+                    if (checkedKeys.Contains(pattern.Replace(value, string.Empty))) continue;
 
-                    string checked_key = pattern.Replace(value, string.Empty);
-                    checked_keys.Add(checked_key);
+                    var checkedKey = pattern.Replace(value, string.Empty);
+                    checkedKeys.Add(checkedKey);
 
-                    string associated_key = BuildAssociatedKey(type, value, key);
+                    var associated_key = BuildAssociatedKey(type, value, key);
 
-                    if (!string.IsNullOrWhiteSpace(associated_key)) associated_keys.Append(associated_key);
+                    if (!string.IsNullOrWhiteSpace(associated_key)) associatedKeys.Append(associated_key);
                 }
             }
 
             key.Close();
 
-            if (!string.IsNullOrWhiteSpace(associated_keys.ToString()))
+            if (!string.IsNullOrWhiteSpace(associatedKeys.ToString()))
             {
-                builder.Append(associated_keys.ToString());
+                builder.Append(associatedKeys.ToString());
             }
 
             await WriteSFCFixScriptAsync(builder);
@@ -218,135 +218,135 @@ namespace SFCFixScriptBuilder.RegistryScriptBuilder
 
         private async Task BuildRegistryKeysScriptAsync(RegistryKey keys, string prefix, bool buildkey, SiblingKeyType type = SiblingKeyType.None)
         {
-            StringBuilder builder = new StringBuilder("::");
-            StringBuilder associated_keys = new StringBuilder();
+            var builder = new StringBuilder("::");
+            var associatedKeys = new StringBuilder();
 
-            Regex pattern = new Regex("[cisp]\\!");
+            var pattern = new Regex("[cisp]\\!");
 
             //Maintain a list of values which have already been checked to avoid duplication in fix script
-            HashSet<string> checked_keys = new HashSet<string>();
+            var checkedKeys = new HashSet<string>();
 
-            string key_name;
-            string value_name = string.Empty;
-            string current_key = string.Empty;
+            var keyName = string.Empty;
+            var valueName = string.Empty;
+            var currentKey = string.Empty;
 
-            foreach (string source_line in await File.ReadAllLinesAsync(LogPath))
+            foreach (var sourceLine in await File.ReadAllLinesAsync(_logPath))
             {
-                string[] segments = source_line.Split('\\');
-                int length = segments.Length;
+                string[] segments = sourceLine.Split('\\');
+                var length = segments.Length;
                 
                 if (buildkey)
                 {
-                    key_name = segments[length - 1];
+                    keyName = segments[length - 1];
                 }
                 else
                 {
-                    key_name = segments[length - 2];
-                    value_name = segments[length - 1];
+                    keyName = segments[length - 2];
+                    valueName = segments[length - 1];
                 }
 
-                RegistryKey key = keys.OpenSubKey(key_name);
+                var key = keys.OpenSubKey(keyName);
 
                 if (key is null)
                 {
-                    Console.WriteLine($"Unable to find key: {key_name}");
+                    Console.WriteLine($"Unable to find key: {keyName}");
                     continue;
                 }
 
-                if (key_name != current_key)
+                if (keyName != currentKey)
                 {
                     builder.AppendLine(string.Empty);
-                    builder.AppendLine($"{prefix}{key_name}]");
-                    current_key = key_name;
+                    builder.AppendLine($"{prefix}{keyName}]");
+                    currentKey = keyName;
                 }
 
                 if (buildkey)
                 {
-                    foreach (string value in key.GetValueNames())
+                    foreach (var value in key.GetValueNames())
                     {
-                        string line = BuildRegistryValue(key, value);
+                        var line = BuildRegistryValue(key, value);
                         builder.AppendLine(line);
 
                         if (type is not SiblingKeyType.None && pattern.IsMatch(value))
                         {
-                            if (checked_keys.Contains(pattern.Replace(value, string.Empty))) continue;
+                            if (checkedKeys.Contains(pattern.Replace(value, string.Empty))) continue;
 
-                            string checked_key = pattern.Replace(value, string.Empty);
-                            checked_keys.Add(checked_key);
+                            var checkedKey = pattern.Replace(value, string.Empty);
+                            checkedKeys.Add(checkedKey);
 
-                            string associated_key = BuildAssociatedKey(type, value, key);
+                            var associated_key = BuildAssociatedKey(type, value, key);
 
-                            if (!string.IsNullOrWhiteSpace(associated_key)) associated_keys.Append(associated_key);
+                            if (!string.IsNullOrWhiteSpace(associated_key)) associatedKeys.Append(associated_key);
                         }
                     }
                 }
                 else
                 {
-                    string line = BuildRegistryValue(key, value_name);
+                    var line = BuildRegistryValue(key, valueName);
                     builder.AppendLine(line);
                 }
 
                 key.Close();
             }
 
-            if (!string.IsNullOrWhiteSpace(associated_keys.ToString()))
+            if (!string.IsNullOrWhiteSpace(associatedKeys.ToString()))
             {
-                builder.Append(associated_keys.ToString());
+                builder.Append(associatedKeys.ToString());
             }
 
             await WriteSFCFixScriptAsync(builder);
         }
 
-        private string BuildRegistryValue(RegistryKey key, string value_name)
+        private string BuildRegistryValue(RegistryKey key, string valueName)
         {
-            RegistryValueKind type = key.GetValueKind(value_name);
-            object data = key.GetValue(value_name);
-            string formatted_value;
-            string value_data;
+            var type = key.GetValueKind(valueName);
+            var data = key.GetValue(valueName);
+            var formattedValue = string.Empty;
+            var valueData = string.Empty;
 
             switch (type)
             {
                 case RegistryValueKind.DWord:
-                    formatted_value = Convert.ToString(Convert.ToInt64(data), 16);
-                    int padding_length = 8 - formatted_value.Length;
+                    formattedValue = Convert.ToString(Convert.ToInt64(data), 16);
+                    var paddingLength = 8 - formattedValue.Length;
 
-                    for (int i = 0; i < padding_length; i++)
+                    for (var i = 0; i < paddingLength; i++)
                     {
-                        formatted_value = string.Concat(formatted_value.Prepend('0'));
+                        formattedValue = string.Concat(formattedValue.Prepend('0'));
                     }
 
-                    value_data = $"\"{value_name}\"=dword:{formatted_value}";
+                    valueData = $"\"{valueName}\"=dword:{formattedValue}";
                     break;
                 case RegistryValueKind.Binary:
                     byte[] hex_data = data as byte[];
-                    formatted_value = BitConverter.ToString(hex_data)?.Replace("-", ",").ToLower();
+                    formattedValue = BitConverter.ToString(hex_data)?.Replace("-", ",").ToLower();
                     
-                    if (formatted_value.Length > 63)
+                    if (formattedValue.Length > 63)
                     {
-                        formatted_value = Formatter.FormatRegBinary(formatted_value, formatted_value.Length - 1);
+                        formattedValue = Formatter.FormatRegBinary(formattedValue, formattedValue.Length - 1);
                     }
 
-                    value_data = $"\"{value_name}\"=hex:{formatted_value}";
+                    valueData = $"\"{valueName}\"=hex:{formattedValue}";
                     break;
                 case RegistryValueKind.String:
-                    value_data = $"\"{value_name}\"={data}";
+                    valueData = $"\"{valueName}\"={data}";
                     break;
                 default:
-                    value_data = $"\"{value_name}\"={Convert.ToString(Convert.ToInt64(data), 16)}";
+                    valueData = $"\"{valueName}\"={Convert.ToString(Convert.ToInt64(data), 16)}";
                     break;
             }
 
-            return value_data?.Trim();
+            return valueData?.Trim();
         }
 
-        private string BuildAssociatedKey(SiblingKeyType type, string key_name, RegistryKey parent_key = null)
+        private string BuildAssociatedKey(SiblingKeyType type, string keyName, RegistryKey parent_key = null)
         {
             switch (type)
             {
                 case SiblingKeyType.Deployment:
-                    return BuildAssociatedDeployment(key_name);
+                    return BuildAssociatedDeployment(keyName);
                 case SiblingKeyType.Package:
-                    return BuildAssociatedPackage(key_name, parent_key);
+                    return BuildAssociatedPackage(keyName, parent_key);
                 default:
                     return string.Empty;
             }
