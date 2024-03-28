@@ -20,6 +20,8 @@ The log file will need to contain the relative key paths as before. If you provi
 
 If you wish to build packages or any other keys which are part of the Component Based Servicing subkey, then you will need to provide the path to a .hiv file of the Component Based Servicing subkey to the -cbs option.
 
+You can export a subkey as a .hiv file using: reg export "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing" %userprofile%\Desktop\CBS.hiv
+
 Options:
 
 -components: The path to the COMPONENTS hive file you wish to source the keys from. This is an optional parameter, but no path has been provided, then the COMPONENTS hive of the current system will be used instead.
