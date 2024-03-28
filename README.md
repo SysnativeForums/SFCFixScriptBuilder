@@ -4,7 +4,7 @@ SFCFixScriptBuilder is intended mostly for building corrupted registry keys from
 
 There is two primary methods to running SFCFixScriptBuilder, the key method and the log file method. If you wish to repair a particular key, then it is recommended that you use the following:
 
-SFCFixScriptBuilder -key <component key name> <key type> <option>
+SFCFixScriptBuilder -key <key_name> <key_type> <option>
 
 For example, if I wanted to build the associated key in full along with it's deployment key, then I could use the following: 
 
@@ -12,7 +12,7 @@ SFCFixScriptBuilder -key amd64_microsoft.windows.common-controls_6595b64144ccf1d
 
 On the other hand, if I wanted to build a set of component keys, then I could provide a log file which has the key names and use the following syntax:
 
-SFCFixScriptBuilder -log <log file path> --components --full
+SFCFixScriptBuilder -log <log_file_path> --components --full
 
 It is important to include the --full switch to indicate that you wish to build a key rather than a key value. By default, with the log file option, SFCFixScriptBuilder will assume that you're trying to build a set of key values. However, if that was the case, within the log file, please provide the value name in your key path and then omit --full.
 
