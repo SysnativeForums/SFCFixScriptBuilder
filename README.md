@@ -10,7 +10,7 @@ The --siblings option is entirely optional and does not apply to every key. This
 
 For example, if I wanted to build the component key in full along with it's deployment key, then I could use the following: 
 
-SFCFixScriptBuilder -key \DerviedData\Components\amd64_microsoft.windows.common-controls_6595b64144ccf1df_6.0.22621.2506_none_270c5ae97388e100 --siblings
+SFCFixScriptBuilder -key \DerivedData\Components\amd64_microsoft.windows.common-controls_6595b64144ccf1df_6.0.22621.2506_none_270c5ae97388e100 --siblings
 
 On the other hand, if I wanted to build a set of component keys, then I could provide a log file which has the key names and use the following syntax:
 
