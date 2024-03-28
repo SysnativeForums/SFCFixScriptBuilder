@@ -1,4 +1,4 @@
-﻿namespace SFCFixScriptBuilder.Helpers
+﻿namespace SFCFixScriptBuilder.Extensions
 {
     public static class RangeExtensions
     {

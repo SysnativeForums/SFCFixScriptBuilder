@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using SFCFixScriptBuilder.Extensions;
 
 namespace SFCFixScriptBuilder.Helpers
 {

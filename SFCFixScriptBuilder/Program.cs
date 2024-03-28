@@ -1,205 +1,118 @@
-﻿using System.Text;
-using Microsoft.Win32;
-using SFCFixScriptBuilder;
-using SFCFixScriptBuilder.Constants;
-using SFCFixScriptBuilder.RegistryHiveLoader;
+﻿using Registry;
+using SFCFixScriptBuilder.Extensions;
+using SFCFixScriptBuilder.Helpers;
 using SFCFixScriptBuilder.RegistryScriptBuilder;
+using System.Text;
 using static System.Environment;
 
 internal class Program
 {
     private static async Task Main(string[] args)
     {
+        var validOptions = new string[] { "-components", "-cbs", "-log", "-key", "--siblings" };
+        var siblings = false;
+
         try
         {
-            string[] arguments = GetCommandLineArgs();
+            Console.WriteLine("SFCFixScriptBuilder version 0.0.9 --prerelease\n");
 
-            string hive = string.Empty;
-            string log = string.Empty;
-            string option = string.Empty;
-            string key = string.Empty;
-            string version = string.Empty;
-            string cbs = string.Empty;
-            bool fullkey = false;
-            bool siblings = false;
+            // Check which options have been selected and ignore any invalid options
+            var selectedOptions = args.Intersect(validOptions).ToArray();
 
-            Console.WriteLine("SFCFixScriptBuilder version 0.0.8--prerelease\n");
-
-            if (arguments.Contains("--help"))
+            if (selectedOptions.Length <= 0)
             {
-                BuildHelpMenu();
+                ConsoleWriter.WriteMessage("Warning: Please ensure that you have provided at least one argument", ConsoleColor.Yellow);
                 return;
             }
 
-            if (arguments.Length < 4)
+            var componentsPath = args.GetElementByValue("-components") ?? @$"{GetEnvironmentVariable("systemroot")}\system32\config\COMPONENTS";
+            var log = args.GetElementByValue("-log") ?? string.Empty;
+            var key = args.GetElementByValue("-key") ?? string.Empty;
+            var cbsPath = args.GetElementByValue("-cbs") ?? string.Empty;
+
+            if (args.Contains("--siblings"))
             {
-                Console.ForegroundColor = ConsoleColor.Yellow;
-                Console.WriteLine("Invalid number of arguments; you must provide a valid key name or log file along with the selected option");
-                return;
-            }
-            else
-            {
-                string[] valid_options = new [] { "--packages", "--components", "--indexes", "--families", "--componentdetect", "--packagedetect", "--catalogs", "--deployments"};
-                string[] selected_options = arguments.Intersect(valid_options).ToArray();
-
-                if (selected_options.Length > 1)
-                {
-                    Console.ForegroundColor = ConsoleColor.Yellow;
-                    Console.WriteLine("Please only select one option");
-                    return;
-                }
-
-                hive = Array.IndexOf(arguments, "-hive") > -1 ? arguments[Array.IndexOf(arguments, "-hive") + 1] : @$"{GetEnvironmentVariable("systemroot")}\system32\config\COMPONENTS";
-                log = Array.IndexOf(arguments, "-log") > -1 ? arguments[Array.IndexOf(arguments, "-log") + 1] : string.Empty;
-                key = Array.IndexOf(arguments, "-key") > -1 ? arguments[Array.IndexOf(arguments, "-key") + 1] : string.Empty;
-                version = Array.IndexOf(arguments, "-version") > -1 ? arguments[Array.IndexOf(arguments, "-version") + 1] : string.Empty;
-                cbs = Array.IndexOf(arguments, "-cbs") > -1 ? arguments[Array.IndexOf(arguments, "-cbs") + 1] : string.Empty;
-                option = selected_options.FirstOrDefault();
-
-                if (arguments.Contains("--full") || !string.IsNullOrWhiteSpace(key))
-                {
-                    fullkey = true;
-                }
-
-                if (arguments.Contains("--siblings"))
-                {
-                    siblings = true;
-                }
+                siblings = true;
             }
 
             if (string.IsNullOrWhiteSpace(log) && string.IsNullOrWhiteSpace(key))
             {
-                Console.ForegroundColor = ConsoleColor.Yellow;
-                Console.WriteLine("Invalid arguments; please check your argument values");
+                ConsoleWriter.WriteMessage("Warning: The -key or -log argument is missing.", ConsoleColor.Yellow);
                 return;
             }
 
-            RegistryScriptBuilder builder = new RegistryScriptBuilder(log, key, version);
+            var builder = BuildRegistryScriptBuilder(componentsPath, cbsPath);
 
-            switch (option)
+            // The user has provided a .txt log with the -log argument
+            if (!string.IsNullOrWhiteSpace(log) && string.IsNullOrWhiteSpace(key))
             {
-                case "--components":
-                    LoadComponentsHive(hive, "SOURCE");
-                    await builder.BuildMissingKeysAsync(@$"{RegistryConfig.COMPONENTS}\DerivedData\Components", Prefixes.ComponentsPrefix, fullkey, siblings);
-                    break;
-                case "--deployments":
-                    if (!string.IsNullOrWhiteSpace(cbs)) LoadCBSHive(cbs, "CBS");
-                    LoadComponentsHive(hive, "SOURCE");
-                    await builder.BuildMissingKeysAsync($@"{RegistryConfig.COMPONENTS}\CanonicalData\Deployments", Prefixes.DeploymentsPrefix, fullkey, siblings);
-                    break;
-                case "--families":
-                    LoadComponentsHive(hive, "SOURCE");
-                    await builder.BuildMissingComponentFamiliesAsync(fullkey);
-                    break;
-                case "--catalogs":
-                    LoadComponentsHive(hive, "SOURCE");
-                    await builder.BuildMissingKeysAsync(@$"{RegistryConfig.COMPONENTS}\CanonicalData\Catalogs", Prefixes.CatalogsPrefix, fullkey);
-                    break;
-                case "--packages":
-                    if (!string.IsNullOrWhiteSpace(cbs)) LoadCBSHive(cbs, "CBS");
-                    await builder.BuildMissingKeysAsync($@"{RegistryConfig.CBS}\Packages", Prefixes.PackagesPrefix, fullkey);
-                    break;
-                case "--indexes":
-                    if (!string.IsNullOrWhiteSpace(cbs)) LoadCBSHive(cbs, "CBS");
-                    await builder.BuildMissingKeysAsync($@"{RegistryConfig.CBS}\PackageIndex", Prefixes.PackageIndexPrefix, fullkey);
-                    break;
-                case "--packagedetect":
-                    if (!string.IsNullOrWhiteSpace(cbs)) LoadCBSHive(cbs, "CBS");
-                    await builder.BuildMissingKeysAsync($@"{RegistryConfig.CBS}\PackageDetect", Prefixes.PackageDetectPrefix, fullkey);
-                    break;
-                case "--componentdetect":
-                    if (!string.IsNullOrWhiteSpace(cbs)) LoadCBSHive(cbs, "CBS");
-                    await builder.BuildMissingKeysAsync($@"{RegistryConfig.CBS}\ComponentDetect", Prefixes.ComponentDetectPrefix, fullkey);
-                    break;
-                default:
-                    Console.WriteLine("Please provide a valid option");
+                if (File.Exists(log))
+                {
+                    var keys = await File.ReadAllLinesAsync(log);
+                    var stringBuilder = new StringBuilder("::\n");
+
+                    foreach (var keyPath in keys)
+                    {
+                        var partialScript = builder.BuildRegistryKeyScript(keyPath, siblings, true);
+                        stringBuilder.Append(partialScript);
+                    }
+
+                    await WriteSFCFixScriptAsync(stringBuilder.ToString());
+                }
+                else
+                {
+                    ConsoleWriter.WriteMessage("Error: The provided log file does not exist.", ConsoleColor.Red);
                     return;
+                }
+            }
+            else
+            {
+                var keyScript = builder.BuildRegistryKeyScript(key, siblings, false);
+                await WriteSFCFixScriptAsync(keyScript);
             }
 
-            Console.WriteLine("SFCFixScript.txt has been successfully written to %userprofile%\\Desktop \n");
+            ConsoleWriter.WriteMessage(@"SFCFixScript.txt has been successfully written to %userprofile%\Desktop", ConsoleColor.Green);
         }
         catch (Exception e)
         {
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine("Something went wrong! Please see exception details below.\n");
-            Console.WriteLine(e.Message);
-            Console.ResetColor();
+            ConsoleWriter.WriteMessage($"Something went wrong! Please see exception details below.\n {e.Message}", ConsoleColor.Red);
         }
-        finally
+    }
+
+    private static RegistryScriptBuilder BuildRegistryScriptBuilder(string componentsPath, string cbsPath)
+    {
+        var componentsHive = new RegistryHiveOnDemand(componentsPath);
+
+        if (!string.IsNullOrWhiteSpace(cbsPath)) 
         {
-            UnloadHive("SOURCE");
-            UnloadHive("CBS");
+            var cbsHive = new RegistryHiveOnDemand(cbsPath);
+            return new RegistryScriptBuilder(in componentsHive, in cbsHive);
         }
+
+        return new RegistryScriptBuilder(in componentsHive);
     }
 
-    private static void BuildHelpMenu()
+    private static async Task WriteSFCFixScriptAsync(string keyScript)
     {
-        var menu = new StringBuilder();
+        var _desktop = $@"{GetEnvironmentVariable("userprofile")}\Desktop";
+        var path = @$"{_desktop}\SFCFixScript.txt";
 
-        menu.AppendLine("SFCFixScriptBuilder Help\n");
-        menu.AppendLine("Repair Key(s)/Value(s): SFCFixScriptBuilder -hive <Path to hive> -log <Path to log> <option>");
-        menu.AppendLine("Repair Key: SFCFixScriptBuilder -hive <Path to hive> -key <Key Path or Key Name> <option>");
-
-        menu.AppendLine("\n");
-
-        menu.AppendLine("-key: The name or path of the key which you wish to repair. This is an optional parameter.\n");
-        menu.AppendLine("-hive: The path to the COMPONENTS hive. This is a optional parameter.\n The COMPONENTS hive of the current system will be used if this parameter is not set.\n");
-        menu.AppendLine("-cbs: The path to the CBS hive. This is an optional parameter.\n The CBS subkey of the current system will be used if this parameter is not set.\n");
-        menu.AppendLine("-log: The path to the .txt file which contains the list of keys or key/values to repair. This is an optional parameter.\n");
-        menu.AppendLine("-version: The VersionedIndex number which the component family belongs to. This is an optional parameter.\n");
-        menu.AppendLine("--full: Determines if you wish to rebuild (the) entire key(s). This is an optional parameter. By default, only the specified values will be rebuilt. If -key is set, then --full is implied to be set as well.\n");
-        menu.AppendLine("--siblings: Determines if you wish to rebuild the keys associated to the given key(s). This is an optional parameter. --siblings implies that --full is applied to the sibling key. \n");
-        
-        menu.AppendLine("Available Build/Repair Options: \n");
-        menu.AppendLine("--components - Build Missing Component Key(s)");
-        menu.AppendLine("--deployments - Build Missing Deployment Key(s)");
-        menu.AppendLine("--families - Build Missing Component Family Key(s)");
-        menu.AppendLine("--catalogs - Build Missing Catalog Key(s)");
-        menu.AppendLine("--packages - Build Missing Package Key(s)");
-        menu.AppendLine("--indexes - Build Missing Package Index Key(s)");
-        menu.AppendLine("--packagedetect - Build Missing Package Detect Key(s)");
-        menu.AppendLine("--componentdetect - Build Missing Component Detect Key(s)");
-        Console.WriteLine(menu.ToString());
-
-        Console.WriteLine("Please press any key to exit...");
-        Console.ReadKey();
-    }
-
-    private static int LoadHive(string path, string name)
-    {
-        HiveLoader.GrantPrivileges();
-        var result = HiveLoader.LoadHive(path, name);
-        HiveLoader.RevokePrivileges();
-
-        return result;
-    }
-
-    private static void LoadComponentsHive(string path, string name)
-    {
-        //Attempt to load the hive, if COMPONENTS hive has already been loaded then this will return an error
-        var result = 0;
-
-        if (!Registry.LocalMachine.GetSubKeyNames().Contains(name)) result = LoadHive(path, name);
-
-        if (result != 0) 
+        if (File.Exists(path))
         {
-            //Throw an exception when the hive file can not be loaded
-            throw new Exception($"Unable to load the COMPONENTS hive file due to the following error code: {result:X2}.");
+            var fileCount = Directory.EnumerateFiles(_desktop)
+                .Where(f => f.Contains("SFCFixScript"))
+                .Count();
+
+            ConsoleWriter.WriteMessage("Warning: An existing SFCFixScript.txt file was found, do you wish to overwrite it [y/n]: ", ConsoleColor.Yellow);
+            var answer = Console.ReadLine() ?? "n";
+
+            if (answer.Equals("n", StringComparison.InvariantCultureIgnoreCase))
+            {
+                await File.WriteAllTextAsync(@$"{_desktop}\SFCFixScript ({fileCount + 1}).txt", keyScript);
+                return;
+            }
         }
 
-        RegistryConfig.COMPONENTS = name;
-    }
-
-    private static void LoadCBSHive(string path, string name)
-    {
-        LoadHive(path, name);
-        RegistryConfig.CBS = name;
-    }
-
-    private static void UnloadHive(string name)
-    {
-        HiveLoader.GrantPrivileges();
-        HiveLoader.UnloadHive(name);
-        HiveLoader.RevokePrivileges();
+        await File.WriteAllTextAsync(path, keyScript);
     }
 }
