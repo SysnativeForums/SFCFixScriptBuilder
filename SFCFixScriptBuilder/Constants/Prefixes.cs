@@ -12,6 +12,5 @@
         public const string PackageIndexPrefix = @"[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\PackageIndex\";
         public const string PackageDetectPrefix = @"[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\PackageDetect\";
         public const string ComponentDetectPrefix = @"[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\ComponentDetect\";
-
     }
 }

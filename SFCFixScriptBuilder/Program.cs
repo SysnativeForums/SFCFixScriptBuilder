@@ -75,7 +75,7 @@ internal class Program
         }
         catch (Exception e)
         {
-            ConsoleWriter.WriteMessage($"Something went wrong! Please see exception details below.\n {e.Message}", ConsoleColor.Red);
+            ConsoleWriter.WriteMessage($"Error: {e.Message}", ConsoleColor.Red);
         }
     }
 
