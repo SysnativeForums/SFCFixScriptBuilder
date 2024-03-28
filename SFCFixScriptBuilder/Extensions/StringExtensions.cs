@@ -1,11 +1,10 @@
 ﻿using System.Text;
-using SFCFixScriptBuilder.Extensions;
 
-namespace SFCFixScriptBuilder.Helpers
+namespace SFCFixScriptBuilder.Extensions
 {
-    public static class Formatter
+    internal static class StringExtensions
     {
-        public static string FormatRegBinary(string value, int end, int start = 63, int step = 75)
+        public static string FormatRegBinary(this string value, int end, int start = 63, int step = 75)
         {
             var builder = new StringBuilder($"{value.Substring(0, 63)}\\\n");
 

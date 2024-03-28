@@ -5,6 +5,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using Registry.Abstractions;
 using Registry.Cells;
+using SFCFixScriptBuilder.Extensions;
 
 namespace SFCFixScriptBuilder.RegistryScriptBuilder
 {
@@ -192,7 +193,7 @@ namespace SFCFixScriptBuilder.RegistryScriptBuilder
                     
                     if (formattedValue?.Length > 63)
                     {
-                        formattedValue = Formatter.FormatRegBinary(formattedValue, formattedValue.Length - 1);
+                        formattedValue = formattedValue.FormatRegBinary(formattedValue.Length - 1);
                     }
 
                     valueData = $"\"{valueName}\"=hex:{formattedValue}";
