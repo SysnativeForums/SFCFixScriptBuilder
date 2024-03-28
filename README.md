@@ -23,9 +23,13 @@ If you wish to build packages or any other keys which are part of the Component 
 Options:
 
 -components: The path to the COMPONENTS hive file you wish to source the keys from. This is an optional parameter, but no path has been provided, then the COMPONENTS hive of the current system will be used instead.
+
 -cbs: The path to the CBS hive file you wish to source the keys from. This is an optional parameter; it will not fallback to the CBS subkey of the running machine.
+
 -log: The path to the .txt file which contains the relative registry key paths of all the keys you wish to build.
+
 -key: The relative path of the registry key you wish to build.
+
 --siblings: Determines if you wish to build the sibling keys associated to either the key provided to -key or the list of keys provided in the .txt file given in -log.
 
 You must select either -key or -log!
