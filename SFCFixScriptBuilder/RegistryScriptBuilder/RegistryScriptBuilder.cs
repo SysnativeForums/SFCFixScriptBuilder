@@ -167,7 +167,7 @@ namespace SFCFixScriptBuilder.RegistryScriptBuilder
 
         private string BuildRegistryValue(KeyValue value)
         {
-            var valueName = value.ValueName;
+            var valueName = value.ValueName.StartsWith("(default)") ? "@" : value.ValueName;
             var type = value?.VkRecord.DataType;
             var keyData = value?.ValueData;
             
