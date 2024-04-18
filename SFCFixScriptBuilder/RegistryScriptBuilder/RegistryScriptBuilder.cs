@@ -11,18 +11,16 @@ namespace SFCFixScriptBuilder.RegistryScriptBuilder
 {
     public class RegistryScriptBuilder
     {
-        private static readonly Regex _marks = new Regex("[cisp]\\!", RegexOptions.Compiled);
-
         private RegistryHiveOnDemand _components;
         private RegistryHiveOnDemand _cbs;
 
-        public RegistryScriptBuilder(in RegistryHiveOnDemand components, in RegistryHiveOnDemand cbs) 
+        public RegistryScriptBuilder(ref readonly RegistryHiveOnDemand components, ref readonly RegistryHiveOnDemand cbs) 
         {
             _components = components;
             _cbs = cbs;
         }
 
-        public RegistryScriptBuilder(in RegistryHiveOnDemand components)
+        public RegistryScriptBuilder(ref readonly RegistryHiveOnDemand components)
         {
             _components = components;
             _cbs = default!;

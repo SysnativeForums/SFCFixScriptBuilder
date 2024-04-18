@@ -53,7 +53,7 @@ internal class Program
 
                     foreach (var keyPath in keys)
                     {
-                        var partialScript = builder.BuildRegistryKeyScript(keyPath, siblings, true);
+                        var partialScript = builder.BuildRegistryKeyScript(keyPath?.Trim()!, siblings, true);
                         stringBuilder.Append(partialScript);
                     }
 
@@ -86,10 +86,10 @@ internal class Program
         if (!string.IsNullOrWhiteSpace(cbsPath)) 
         {
             var cbsHive = new RegistryHiveOnDemand(cbsPath);
-            return new RegistryScriptBuilder(in componentsHive, in cbsHive);
+            return new RegistryScriptBuilder(ref componentsHive, ref cbsHive);
         }
 
-        return new RegistryScriptBuilder(in componentsHive);
+        return new RegistryScriptBuilder(ref componentsHive);
     }
 
     private static async Task WriteSFCFixScriptAsync(string keyScript)
