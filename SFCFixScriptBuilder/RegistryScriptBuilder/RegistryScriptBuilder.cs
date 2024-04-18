@@ -127,7 +127,7 @@ namespace SFCFixScriptBuilder.RegistryScriptBuilder
 
             if (!isMulti) builder.AppendLine("::");
 
-            var key = _components.GetKey(keyPath) ?? _cbs.GetKey(keyPath);
+            var key = _components.GetKey(keyPath) ?? _cbs?.GetKey(keyPath);
 
             if (key is null)
             {
