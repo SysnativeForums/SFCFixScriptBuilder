@@ -14,7 +14,7 @@ internal class Program
 
         try
         {
-            Console.WriteLine("SFCFixScriptBuilder version 0.0.9 --prerelease\n");
+            Console.WriteLine("SFCFixScriptBuilder version 0.0.10 --prerelease\n");
 
             // Check which options have been selected and ignore any invalid options
             var selectedOptions = args.Intersect(validOptions).ToArray();
